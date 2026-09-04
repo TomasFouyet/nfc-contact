@@ -1,0 +1,9 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Apellido;Tomas;;;
+FN:Tomas Apellido
+ORG:Empresa
+TITLE:Ingeniero
+TEL;TYPE=CELL:+56912345678
+EMAIL;TYPE=WORK:tomas@empresa.cl
+END:VCARD
