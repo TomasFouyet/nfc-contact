@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="M01">
+<main>
+<div id="top"></div>
+<section class="panel">
+  <h2>Prueba</h2>
+  <p>En este método la tarjeta <strong>no</strong> apunta a esta página, sino directamente al archivo <code>.vcf</code>. Esta página solo documenta la prueba.</p>
+  <p class="notice info" id="hdr">Comprobando cabeceras del archivo…</p>
+  <a class="btn primary" id="open" href="#">Abrir el .vcf como lo haría la tarjeta</a>
+</section>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  var url = Lab.vcfUrl();
+  document.getElementById('open').href = url;
+  Lab.headers(NFCMethods.VCF).then(function (h) {
+    document.getElementById('hdr').textContent = 'Este hosting entrega: Content-Type: ' + (h.type || '(vacío)') +
+      ' · Content-Disposition: ' + (h.disposition || '(ninguna)') + ' · HTTP ' + h.status;
+  }).catch(function (e) { document.getElementById('hdr').textContent = 'No se pudieron leer cabeceras: ' + e; });
+</script>
+</body>
+</html>

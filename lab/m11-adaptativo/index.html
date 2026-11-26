@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="M11">
+<main>
+<div class="notice info" id="status" hidden></div>
+<div id="card"></div>
+<div id="top"></div>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  /*
+   * Candidato de producción: UNA URL por tarjeta, comportamiento según plataforma.
+   *   ?ios=redirect (por defecto) | ficha
+   *   ?android=boton (por defecto) | intent | auto
+   */
+  var C = NFCContact, env = Lab.env;
+  var vcf = Lab.vcfUrl();
+  var iosMode = Lab.qs('ios') || 'redirect';
+  var androidMode = Lab.qs('android') || 'boton';
+  var status = document.getElementById('status');
+  function say(m) { status.hidden = false; status.textContent = m; Lab.log(m); }
+
+  var actions = [{ label: 'Guardar contacto', href: vcf, primary: true, id: 'save' }];
+
+  if (env.os === 'ios' && iosMode === 'redirect') {
+    say('iPhone detectado: abriendo el contacto…');
+    location.replace(vcf);
+  } else if (env.os === 'android') {
+    if (androidMode === 'intent') {
+      actions = [
+        { label: 'Guardar contacto', href: C.buildInsertIntent(C.CONTACT, { fallback: vcf }), primary: true, id: 'save' },
+        { label: 'Descargar tarjeta (.vcf)', href: vcf }
+      ];
+      Lab.log('Android: botón principal = intent INSERT con respaldo .vcf');
+    } else if (androidMode === 'auto') {
+      say('Descargando la tarjeta de contacto… Ábrela desde la notificación para guardarla.');
+      Lab.clickLink(vcf, { download: true });
+    }
+  }
+  Lab.card(document.getElementById('card'), { actions: actions });
+</script>
+</body>
+</html>

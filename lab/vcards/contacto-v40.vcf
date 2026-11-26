@@ -1,0 +1,14 @@
+BEGIN:VCARD
+VERSION:4.0
+N:Rojas Ibáñez;Valentina;;;
+FN:Valentina Rojas Ibáñez
+KIND:individual
+ORG:Ejemplo Ingeniería SpA
+TITLE:Jefa de Proyectos
+TEL;VALUE=uri;TYPE="cell,voice":tel:+56900000101
+TEL;VALUE=uri;TYPE="work,voice":tel:+56200000202
+EMAIL;TYPE=work:valentina.rojas@example.com
+URL:https://example.com
+ADR;TYPE=work:;;Av. Ejemplo 1234\, Of. 56;Santiago;RM;0000000;Chile
+NOTE:Contacto ficticio - Piloto NFC
+END:VCARD

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=../vcards/contacto-v30.vcf">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="M04">
+<main>
+<div class="notice info">Redirigiendo al contacto con meta refresh… Si no ocurre nada, usa el botón.</div>
+<div id="card"></div>
+<div id="top"></div>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  Lab.card(document.getElementById('card'), {
+    actions: [{ label: 'Guardar contacto', href: Lab.vcfUrl(), primary: true }]
+  });
+  Lab.log('meta refresh declarado (0 s) hacia ../vcards/contacto-v30.vcf');
+</script>
+</body>
+</html>

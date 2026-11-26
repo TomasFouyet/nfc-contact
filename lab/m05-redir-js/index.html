@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="M05">
+<main>
+<div class="notice info" id="status">Redirigiendo al contacto…</div>
+<div id="card"></div>
+<div id="top"></div>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  var modo = Lab.qs('modo') || 'replace';
+  var url = Lab.vcfUrl();
+  Lab.card(document.getElementById('card'), {
+    actions: [{ label: 'Guardar contacto', href: url, primary: true }]
+  });
+  Lab.log('redirección JS: location.' + modo);
+  document.getElementById('status').textContent = 'Redirigiendo con location.' + modo + '()… Si no ocurre nada, usa el botón.';
+  if (modo === 'assign') location.assign(url); else location.replace(url);
+</script>
+</body>
+</html>

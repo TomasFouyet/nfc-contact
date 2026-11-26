@@ -1,0 +1,4 @@
+# Las vCard deben conservar sus saltos de línea exactos (CRLF o LF según la
+# variante). Se marcan como no-texto para que git no los convierta.
+*.vcf -text
+*.vcard -text

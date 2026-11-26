@@ -1,0 +1,9 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Rojas Ibáñez;Valentina;;;
+FN:Valentina Rojas Ibáñez
+ORG:Ejemplo Ingeniería SpA
+TITLE:Jefa de Proyectos
+TEL;TYPE=CELL,VOICE:+56900000101
+EMAIL;TYPE=INTERNET,WORK:valentina.rojas@example.com
+END:VCARD

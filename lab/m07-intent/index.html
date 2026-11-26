@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="M07">
+<main>
+<div id="top"></div>
+<section class="panel">
+  <h2>Variantes de Intent</h2>
+  <p class="notice warn" id="ios" hidden>Estás en iOS: los URIs <code>intent:</code> no funcionan aquí. Esta prueba es solo para Android.</p>
+  <p class="muted">Cada botón es un enlace real (<code>&lt;a href="intent:…"&gt;</code>), así que Chrome recibe un gesto de la persona. Si la app no se abre, el navegador debería ir a la URL de respaldo: la ficha M02 con <code>?desde=intent</code>.</p>
+  <div class="btn-grid" id="btns"></div>
+  <p class="notice info" id="status" hidden></p>
+</section>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  var C = NFCContact;
+  var fb = Lab.abs('m02-boton/?desde=intent');
+  var VARIANTS = [
+    { id: 'I1', label: 'I1 · INSERT raw_contact (intent:)', opts: { fallback: fb } },
+    { id: 'I2', label: 'I2 · INSERT raw_contact (intent://)', opts: { fallback: fb, prefix: 'intent://' } },
+    { id: 'I3', label: 'I3 · INSERT dir/contact', opts: { fallback: fb, mime: 'vnd.android.cursor.dir/contact' } },
+    { id: 'I4', label: 'I4 · INSERT_OR_EDIT item/contact', opts: { fallback: fb, action: 'INSERT_OR_EDIT' } },
+    { id: 'I5', label: 'I5 · INSERT → Samsung Contacts', opts: { fallback: fb, pkg: 'com.samsung.android.app.contacts' } },
+    { id: 'I6', label: 'I6 · INSERT → Google Contacts', opts: { fallback: fb, pkg: 'com.google.android.contacts' } },
+    { id: 'I7', label: 'I7 · INSERT sin URL de respaldo (ver error real)', opts: {} }
+  ];
+  var box = document.getElementById('btns');
+  VARIANTS.forEach(function (v) {
+    var uri = C.buildInsertIntent(C.CONTACT, v.opts);
+    var a = Lab.el('a', { 'class': 'btn', href: uri, text: v.label });
+    a.addEventListener('click', function () { Lab.log('toque: ' + v.label); });
+    box.appendChild(a);
+    var d = Lab.el('details', null, [Lab.el('summary', { 'class': 'muted', text: 'URI de ' + v.id }), Lab.el('code', { text: uri })]);
+    box.appendChild(d);
+  });
+  if (Lab.env.os === 'ios') document.getElementById('ios').hidden = false;
+  if (Lab.qs('auto') === '1') {
+    var st = document.getElementById('status');
+    st.hidden = false;
+    st.textContent = 'Modo automático: navegando a I1 sin gesto de la persona…';
+    Lab.log('auto: location.href = I1');
+    setTimeout(function () { location.href = C.buildInsertIntent(C.CONTACT, VARIANTS[0].opts); }, 50);
+  }
+</script>
+</body>
+</html>

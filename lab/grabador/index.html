@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Grabador NFC — NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body>
+<main>
+  <div class="topbar"><a href="../">← Laboratorio</a><span class="badge">Herramienta</span></div>
+  <h1>Grabador y lector de tarjetas</h1>
+  <p class="muted">Usa Web NFC para grabar cualquier prueba en una NTAG215, sin apps externas. Solo funciona en <strong>Chrome para Android</strong> (versión 89 o superior) y con HTTPS. No funciona en iPhone ni, por lo que sabemos, en Samsung Internet.</p>
+  <p id="support" class="notice"></p>
+
+  <section class="panel">
+    <h2>Grabar</h2>
+    <form onsubmit="return false">
+      <div class="field">
+        <label for="preset">Contenido</label>
+        <select id="preset"></select>
+      </div>
+      <div class="field" id="hybWrap">
+        <label for="hyb">URL del registro URI (para URL / híbridos)</label>
+        <input type="text" id="hyb">
+      </div>
+    </form>
+    <p class="muted" id="summary"></p>
+    <button class="btn primary" type="button" id="write">Grabar tarjeta</button>
+    <p class="notice info" id="wstatus" hidden></p>
+  </section>
+
+  <section class="panel">
+    <h2>Leer y verificar</h2>
+    <p class="muted">Muestra los registros NDEF de la tarjeta en su orden real. Úsalo antes de cada prueba para confirmar lo grabado.</p>
+    <button class="btn" type="button" id="read">Leer tarjeta</button>
+    <pre id="rout" class="mono" style="white-space:pre-wrap;font-size:.78rem"></pre>
+  </section>
+  <div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  var C = NFCContact, M = NFCMethods;
+  var support = document.getElementById('support');
+  var ok = 'NDEFReader' in window;
+  support.className = 'notice ' + (ok ? 'ok' : 'err');
+  support.textContent = ok ? 'Web NFC disponible en este navegador.' : 'Web NFC NO disponible aquí (' + Lab.env.browser + ', ' + Lab.env.os + '). Usa Chrome para Android o una app de grabación.';
+
+  // Opciones: todas las URLs de prueba + variantes NDEF
+  var sel = document.getElementById('preset');
+  function opt(value, label) { sel.appendChild(Lab.el('option', { value: value, text: label })); }
+  M.METHODS.forEach(function (m) { m.nfc.forEach(function (n) { if (m.id !== 'M12') opt('url:' + n.path, m.id + ' · ' + n.label); }); });
+  M.VARIANTS.forEach(function (v) { opt('url:' + v.path, 'M09 ' + v.id + ' · ' + v.label); });
+  opt('ndef:A', 'M12 A · Solo vCard compacta (MIME text/vcard)');
+  opt('ndef:A+', 'M12 A+ · Solo vCard completa');
+  opt('ndef:B', 'M12 B · vCard compacta → URL');
+  opt('ndef:C', 'M12 C · URL → vCard compacta');
+  var hyb = document.getElementById('hyb');
+  hyb.value = Lab.abs('m11-adaptativo/');
+  var p = Lab.qs('p'); if (p) sel.value = p;
+
+  function records() {
+    var v = sel.value, enc = new TextEncoder();
+    var compact = C.buildVCard(C.CONTACT, { version: '3.0', compact: true });
+    var full = C.buildVCard(C.CONTACT, { version: '3.0' });
+    var vc = function (t) { return { recordType: 'mime', mediaType: 'text/vcard', data: enc.encode(t) }; };
+    var url = { recordType: 'url', data: hyb.value };
+    if (v.indexOf('url:') === 0) return [{ recordType: 'url', data: Lab.abs(v.slice(4)) }];
+    return { 'ndef:A': [vc(compact)], 'ndef:A+': [vc(full)], 'ndef:B': [vc(compact), url], 'ndef:C': [url, vc(compact)] }[v];
+  }
+  function sizeOf(recs) {
+    return C.ndefMessageSize(recs.map(function (r) {
+      return r.recordType === 'url' ? C.uriRecord(r.data) : C.mimeRecord(r.mediaType, new TextDecoder().decode(r.data));
+    })).tlv;
+  }
+  function refresh() {
+    var recs = records();
+    document.getElementById('hybWrap').style.display = sel.value.indexOf('ndef:B') === 0 || sel.value === 'ndef:C' ? '' : 'none';
+    document.getElementById('summary').textContent = 'Registros: ' + recs.map(function (r) {
+      return r.recordType === 'url' ? 'URL ' + r.data : 'MIME ' + r.mediaType;
+    }).join(' → ') + ' · ~' + sizeOf(recs) + ' bytes (NTAG215: 504)';
+  }
+  sel.addEventListener('change', refresh); hyb.addEventListener('input', refresh); refresh();
+
+  var wst = document.getElementById('wstatus');
+  function wsay(m, cls) { wst.hidden = false; wst.className = 'notice ' + (cls || 'info'); wst.textContent = m; Lab.log(m); }
+  document.getElementById('write').addEventListener('click', function () {
+    if (!ok) return wsay('Web NFC no disponible.', 'err');
+    var recs = records();
+    wsay('Acerca la tarjeta al teléfono…');
+    new NDEFReader().write({ records: recs }, { overwrite: true })
+      .then(function () { wsay('Tarjeta grabada: ' + document.getElementById('summary').textContent, 'ok'); })
+      .catch(function (e) { wsay('Error al grabar: ' + e.name + ' — ' + e.message, 'err'); });
+  });
+
+  var rout = document.getElementById('rout');
+  document.getElementById('read').addEventListener('click', function () {
+    if (!ok) { rout.textContent = 'Web NFC no disponible.'; return; }
+    var r = new NDEFReader();
+    rout.textContent = 'Acerca la tarjeta…';
+    r.scan().then(function () {
+      r.onreadingerror = function () { rout.textContent = 'No se pudo leer la tarjeta (¿vacía o sin formato NDEF?).'; };
+      r.onreading = function (ev) {
+        var out = ['Número de serie: ' + ev.serialNumber, 'Registros: ' + ev.message.records.length];
+        ev.message.records.forEach(function (rec, i) {
+          var txt = '';
+          try { txt = new TextDecoder(rec.encoding || 'utf-8').decode(rec.data); } catch (e) { txt = '(binario)'; }
+          out.push('#' + (i + 1) + ' ' + rec.recordType + (rec.mediaType ? ' ' + rec.mediaType : '') + '\n' + txt);
+        });
+        rout.textContent = out.join('\n\n');
+        Lab.log('lectura: ' + ev.message.records.length + ' registro(s)');
+      };
+    }).catch(function (e) { rout.textContent = 'Error: ' + e.name + ' — ' + e.message; });
+  });
+</script>
+</body>
+</html>

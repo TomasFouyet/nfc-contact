@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="M13">
+<main>
+<div id="top"></div>
+<section class="panel">
+  <h2>¿Este hosting soporta la prueba?</h2>
+  <div id="checks"></div>
+  <p class="muted">GitHub Pages no permite redirecciones HTTP configurables. Ver <code>server/serve.mjs</code> (local) y los archivos <code>_redirects</code> / <code>_headers</code> (Netlify / Cloudflare Pages) en el repositorio.</p>
+</section>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  var box = document.getElementById('checks');
+  [['r/vcf', '302 → .vcf'], ['r/intent', '302 → intent INSERT']].forEach(function (p) {
+    var line = Lab.el('p', { text: p[1] + ': comprobando…' });
+    box.appendChild(line);
+    fetch(Lab.abs(p[0]), { redirect: 'manual', cache: 'no-store' }).then(function (r) {
+      var ok = r.type === 'opaqueredirect' || (r.status >= 300 && r.status < 400);
+      line.innerHTML = '';
+      line.appendChild(Lab.el('span', { 'class': 'badge ' + (ok ? 'ok' : 'err'), text: ok ? 'disponible' : 'no disponible (HTTP ' + r.status + ')' }));
+      line.appendChild(document.createTextNode(' ' + p[1] + ' '));
+      if (ok) line.appendChild(Lab.el('a', { href: Lab.abs(p[0]), text: 'probar' }));
+    }).catch(function (e) { line.textContent = p[1] + ': error ' + e.message; });
+  });
+</script>
+</body>
+</html>

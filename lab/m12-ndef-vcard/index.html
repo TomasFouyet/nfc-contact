@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="M12">
+<main>
+<div id="top"></div>
+<section class="panel">
+  <h2>Contenido a grabar en el chip</h2>
+  <p class="muted">La URL que acompaña a la vCard en los híbridos es la de la página adaptativa (M11) en este hosting:</p>
+  <div id="hyb"></div>
+  <h3>vCard compacta (3.0, campos esenciales)</h3>
+  <pre class="mono" id="vc" style="white-space:pre-wrap;font-size:.78rem"></pre>
+  <h3>Tamaño estimado del mensaje NDEF</h3>
+  <div class="table-scroll"><table id="sizes"><tr><th>Variante</th><th>Registros (orden)</th><th>Bytes (TLV)</th><th>NTAG213 (144)</th><th>NTAG215 (504)</th><th>NTAG216 (888)</th></tr></table></div>
+  <p class="muted">Cálculo propio: cabecera de registro NDEF + TLV (0x03, largo, 0xFE). Margen real: verificarlo con la app de grabación.</p>
+</section>
+<section class="panel">
+  <h2>Cómo grabar</h2>
+  <ol>
+    <li><strong>Opción 1 (recomendada, Android + Chrome):</strong> abrir el <a id="rec" href="../grabador/">Grabador del laboratorio</a> y elegir la variante A, B o C.</li>
+    <li><strong>Opción 2 (cualquier teléfono):</strong> usar una app de grabación NFC (por ejemplo, NFC Tools). Agregar un registro <em>Contacto/vCard</em> con los datos de arriba y, en los híbridos, un registro <em>URL</em> en el orden que indica la tabla. Anotar en los resultados la app y el tipo de registro que generó.</li>
+    <li>Leer la tarjeta con la app de grabación para confirmar el orden de los registros antes de probar.</li>
+  </ol>
+  <a class="btn" href="../vcards/contacto-ndef.vcf" download="Valentina-Rojas-compacta.vcf">Descargar vCard compacta (.vcf)</a>
+</section>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  var C = NFCContact;
+  var hybridUrl = Lab.abs('m11-adaptativo/');
+  document.getElementById('hyb').appendChild(Lab.urlRow('URL de los híbridos', 'm11-adaptativo/'));
+  var compact = C.buildVCard(C.CONTACT, { version: '3.0', compact: true });
+  var full = C.buildVCard(C.CONTACT, { version: '3.0' });
+  document.getElementById('vc').textContent = compact;
+  var vc = C.mimeRecord('text/vcard', compact), vcFull = C.mimeRecord('text/vcard', full), u = C.uriRecord(hybridUrl);
+  var rows = [
+    ['A', 'vCard compacta', [vc]],
+    ['A+', 'vCard completa', [vcFull]],
+    ['B', 'vCard compacta → URL', [vc, u]],
+    ['C', 'URL → vCard compacta', [u, vc]],
+    ['B+', 'vCard completa → URL', [vcFull, u]],
+    ['Ref', 'Solo URL (M11)', [u]]
+  ];
+  var t = document.getElementById('sizes');
+  rows.forEach(function (r) {
+    var s = C.ndefMessageSize(r[2]).tlv;
+    var tr = Lab.el('tr', null, [Lab.el('td', { text: r[0] }), Lab.el('td', { text: r[1] }), Lab.el('td', { text: String(s) })]);
+    ['NTAG213', 'NTAG215', 'NTAG216'].forEach(function (k) {
+      var ok = s <= C.TAG_CAPACITY[k];
+      tr.appendChild(Lab.el('td', null, [Lab.el('span', { 'class': 'badge ' + (ok ? 'ok' : 'err'), text: ok ? 'cabe' : 'no cabe' })]));
+    });
+    t.appendChild(tr);
+  });
+</script>
+</body>
+</html>

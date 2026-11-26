@@ -1,0 +1,4 @@
+# Redirecciones HTTP para Netlify / Cloudflare Pages / servidor local.
+# GitHub Pages IGNORA este archivo. La redirección a intent: (/lab/r/intent)
+# solo la implementa server/serve.mjs porque depende del host.
+/lab/r/vcf  /lab/vcards/contacto-v30.vcf  302

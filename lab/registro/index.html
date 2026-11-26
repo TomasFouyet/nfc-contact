@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Registro de resultados — NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body>
+<main>
+  <div class="topbar"><a href="../">← Laboratorio</a><span class="badge">Herramienta</span></div>
+  <h1>Registro de resultados</h1>
+  <p class="muted">Completar en el <strong>mismo teléfono</strong> recién terminada la prueba. Genera una fila en Markdown para pegar en <code>docs/TEST_RESULTS.md</code>. Los datos se guardan solo en este navegador (localStorage); no se envían a ningún servidor.</p>
+
+  <form id="f" class="panel" onsubmit="return false">
+    <div class="row2">
+      <div class="field"><label for="prueba">Prueba</label><select id="prueba"></select></div>
+      <div class="field"><label for="variante">Variante / URL grabada</label><input type="text" id="variante" placeholder="ej. ?modo=iframe, H2, I3"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="modelo">Modelo de teléfono *</label><input type="text" id="modelo" placeholder="ej. iPhone 13, Galaxy S23 (SM-S911B)"></div>
+      <div class="field"><label for="so">Sistema operativo y versión *</label><input type="text" id="so" placeholder="ej. iOS 18.5 / Android 14 One UI 6.1"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="nav">Navegador y versión *</label><input type="text" id="nav"></div>
+      <div class="field"><label for="tag">Tarjeta</label><input type="text" id="tag" placeholder="ej. NTAG215 #3"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="tester">Tester (iniciales)</label><input type="text" id="tester"></div>
+      <div class="field"><label for="intento">Intento n.º</label><input type="number" id="intento" min="1" value="1"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="nfc">Lectura NFC</label>
+        <select id="nfc"><option>Sí, notificación</option><option>Sí, apertura directa</option><option>Sí, selector de apps</option><option>Sí, abrió Contactos directamente</option><option>Intermitente</option><option>No</option></select></div>
+      <div class="field"><label for="desc">Descarga automática</label>
+        <select id="desc"><option>No aplica</option><option>Sí, sin aviso</option><option>Sí, con aviso/confirmación</option><option>No</option><option>Fue a Archivos/Descargas</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="contactos">Apertura de Contactos</label>
+        <select id="contactos"><option>Sí, ficha/vista previa directa</option><option>Sí, editor "Nuevo contacto"</option><option>Sí, tras abrir la descarga</option><option>Sí, vía menú compartir</option><option>No</option></select></div>
+      <div class="field"><label for="inter">Interacciones (desde la lectura hasta guardar)</label><input type="number" id="inter" min="0"></div>
+    </div>
+    <div class="field"><label>Campos importados correctamente</label>
+      <div class="checks" id="campos"></div>
+    </div>
+    <div class="field"><label for="res">Resultado</label>
+      <select id="res"><option>Éxito</option><option>Parcial</option><option>Fallo</option></select></div>
+    <div class="field"><label for="obs">Errores y observaciones</label><textarea id="obs" placeholder="Textos de avisos, pantallas intermedias, cuenta de destino elegida, tiempos…"></textarea></div>
+    <button class="btn primary" type="button" id="save">Guardar y generar fila</button>
+  </form>
+
+  <section class="panel">
+    <h2>Fila generada</h2>
+    <pre id="md" class="mono" style="white-space:pre-wrap;font-size:.78rem"></pre>
+    <button class="btn small" type="button" id="copy1">Copiar fila</button>
+  </section>
+
+  <section class="panel">
+    <h2>Guardados en este navegador (<span id="n">0</span>)</h2>
+    <div class="btn-grid two">
+      <button class="btn" type="button" id="copyAll">Copiar todo (Markdown)</button>
+      <button class="btn" type="button" id="copyJson">Copiar todo (JSON)</button>
+    </div>
+    <p><button class="btn small" type="button" id="clear">Borrar registros locales</button></p>
+  </section>
+  <div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  var KEY = 'nfclab.results.v1';
+  var FIELDS = ['Nombre', 'Apellidos (á, ñ)', 'Empresa (í)', 'Cargo', 'Móvil', 'Tel. trabajo', 'Correo', 'Sitio web', 'Dirección', 'Nota'];
+  var $ = function (id) { return document.getElementById(id); };
+  NFCMethods.METHODS.forEach(function (m) { $('prueba').appendChild(Lab.el('option', { value: m.id, text: m.id + ' · ' + m.title })); });
+  if (Lab.qs('m')) $('prueba').value = Lab.qs('m');
+  FIELDS.forEach(function (f, i) {
+    $('campos').appendChild(Lab.el('label', null, [Lab.el('input', { type: 'checkbox', value: f, id: 'c' + i }), f]));
+  });
+  // Precarga a partir del diagnóstico: VERIFICAR a mano (UA reducido/congelado).
+  var e = Lab.env;
+  $('so').value = (e.os === 'ios' ? 'iOS ' : e.os === 'android' ? 'Android ' : e.os + ' ') + e.osVersion + ' (verificar)';
+  $('nav').value = e.browser + ' ' + e.browserVersion;
+  Lab.clientHints().then(function (ch) {
+    if (ch && ch.model && ch.model !== '(vacío)' && !$('modelo').value) $('modelo').value = ch.model + ' (Client Hints)';
+    if (ch && e.os === 'android') $('so').value = 'Android ' + ch.platform.replace(/^Android\s*/, '') + ' (Client Hints)';
+  });
+
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (x) { return []; } }
+  function store(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (x) {} }
+  function cell(s) { return String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\n+/g, ' '); }
+  function toRow(r) {
+    return '| ' + [r.fecha, r.tester, r.prueba, r.variante, r.modelo, r.so, r.nav, r.tag, r.nfc, r.desc, r.contactos, r.inter,
+      r.camposOk + '/' + FIELDS.length + (r.faltan.length ? ' (faltan: ' + r.faltan.join(', ') + ')' : ''), r.res, 'Intento ' + r.intento + '. ' + r.obs].map(cell).join(' | ') + ' |';
+  }
+  var HEADER = '| Fecha | Tester | Prueba | Variante | Teléfono | SO | Navegador | Tarjeta | Lectura NFC | Descarga auto | Contactos | Interacciones | Campos OK | Resultado | Errores / observaciones |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|';
+  function refreshCount() { $('n').textContent = load().length; }
+  refreshCount();
+
+  $('save').addEventListener('click', function () {
+    if (!$('modelo').value.trim() || !$('so').value.trim() || !$('nav').value.trim()) { alert('Completa modelo, sistema operativo y navegador.'); return; }
+    var checked = FIELDS.filter(function (f, i) { return $('c' + i).checked; });
+    var r = {
+      fecha: new Date().toISOString().slice(0, 16).replace('T', ' '), tester: $('tester').value, prueba: $('prueba').value,
+      variante: $('variante').value, modelo: $('modelo').value, so: $('so').value, nav: $('nav').value, tag: $('tag').value,
+      nfc: $('nfc').value, desc: $('desc').value, contactos: $('contactos').value, inter: $('inter').value,
+      camposOk: checked.length, faltan: FIELDS.filter(function (f) { return checked.indexOf(f) < 0; }),
+      res: $('res').value, obs: $('obs').value, intento: $('intento').value, ua: navigator.userAgent
+    };
+    var list = load(); list.push(r); store(list); refreshCount();
+    $('md').textContent = toRow(r);
+  });
+  $('copy1').addEventListener('click', function () { Lab.copy($('md').textContent, $('copy1')); });
+  $('copyAll').addEventListener('click', function () { Lab.copy(HEADER + '\n' + load().map(toRow).join('\n'), $('copyAll')); });
+  $('copyJson').addEventListener('click', function () { Lab.copy(JSON.stringify(load(), null, 2), $('copyJson')); });
+  $('clear').addEventListener('click', function () { if (confirm('¿Borrar todos los registros guardados en este navegador?')) { store([]); refreshCount(); } });
+</script>
+</body>
+</html>

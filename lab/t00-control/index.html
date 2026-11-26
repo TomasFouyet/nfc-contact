@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NFC Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+</head>
+<body data-method="T00">
+<main>
+<div id="top"></div>
+<section class="panel">
+  <p class="notice ok"><strong>Lectura NFC correcta:</strong> el teléfono abrió esta página.</p>
+  <p>Hora de carga: <strong id="t"></strong></p>
+  <p class="muted">Anota cómo llegaste aquí: notificación del sistema, apertura directa, selector de apps u otro. El diagnóstico de abajo identifica el navegador.</p>
+</section>
+<div id="bottom"></div>
+</main>
+<script src="../assets/contact.js"></script>
+<script src="../assets/methods.js"></script>
+<script src="../assets/lab.js"></script>
+<script>
+  document.getElementById('t').textContent = new Date().toLocaleString();
+  document.getElementById('diag').open = true;
+</script>
+</body>
+</html>
