@@ -56,10 +56,11 @@
   M.VARIANTS.forEach(function (v) { opt('url:' + v.path, 'M09 ' + v.id + ' · ' + v.label); });
   opt('ndef:A', 'M12 A · Solo vCard compacta (MIME text/vcard)');
   opt('ndef:A+', 'M12 A+ · Solo vCard completa');
+  opt('ndef:B+', 'M12 B+ · vCard completa → URL (recomendada: Samsung + iPhone)');
   opt('ndef:B', 'M12 B · vCard compacta → URL');
   opt('ndef:C', 'M12 C · URL → vCard compacta');
   var hyb = document.getElementById('hyb');
-  hyb.value = Lab.abs('m11-adaptativo/');
+  hyb.value = Lab.abs('m02-boton/'); // ficha M02: la preferida en iPhone
   var p = Lab.qs('p'); if (p) sel.value = p;
 
   function records() {
@@ -69,7 +70,7 @@
     var vc = function (t) { return { recordType: 'mime', mediaType: 'text/vcard', data: enc.encode(t) }; };
     var url = { recordType: 'url', data: hyb.value };
     if (v.indexOf('url:') === 0) return [{ recordType: 'url', data: Lab.abs(v.slice(4)) }];
-    return { 'ndef:A': [vc(compact)], 'ndef:A+': [vc(full)], 'ndef:B': [vc(compact), url], 'ndef:C': [url, vc(compact)] }[v];
+    return { 'ndef:A': [vc(compact)], 'ndef:A+': [vc(full)], 'ndef:B': [vc(compact), url], 'ndef:B+': [vc(full), url], 'ndef:C': [url, vc(compact)] }[v];
   }
   function sizeOf(recs) {
     return C.ndefMessageSize(recs.map(function (r) {
@@ -78,7 +79,7 @@
   }
   function refresh() {
     var recs = records();
-    document.getElementById('hybWrap').style.display = sel.value.indexOf('ndef:B') === 0 || sel.value === 'ndef:C' ? '' : 'none';
+    document.getElementById('hybWrap').style.display = /^ndef:(B|B\+|C)$/.test(sel.value) ? '' : 'none';
     document.getElementById('summary').textContent = 'Registros: ' + recs.map(function (r) {
       return r.recordType === 'url' ? 'URL ' + r.data : 'MIME ' + r.mediaType;
     }).join(' → ') + ' · ~' + sizeOf(recs) + ' bytes (NTAG215: 504)';

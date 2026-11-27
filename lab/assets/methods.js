@@ -217,7 +217,7 @@
       nfc: [{ label: 'Instrucciones y tamaños (la tarjeta NO lleva esta URL)', path: 'm12-ndef-vcard/' }],
       steps: [
         'Grabar la tarjeta con el Grabador del laboratorio (Chrome Android) o con una app como NFC Tools.',
-        'Variante A: solo vCard. Variante B: vCard + URL. Variante C: URL + vCard.',
+        'Variante A: solo vCard. Variante B: vCard + URL. B+: vCard completa + URL de M02 (candidata). Variante C: URL + vCard.',
         'Probar cada variante en iPhone y en Samsung.'
       ],
       expected: {

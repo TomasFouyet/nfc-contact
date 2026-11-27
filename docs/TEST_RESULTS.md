@@ -1,6 +1,6 @@
 # Resultados de pruebas
 
-> **Estado al 2026-11-26: no hay pruebas físicas registradas.**
+> **Estado al 2026-11-27: primeras observaciones físicas (preliminares, incompletas).** Ver §4.
 > Este documento separa tres tipos de evidencia que **no deben mezclarse**:
 >
 > 1. Observaciones previas del equipo (sin protocolo).
@@ -87,6 +87,18 @@ Lo que estas pruebas **sí** demuestran:
 
 Completar con filas generadas en `/lab/registro/`. Una fila por intento.
 Columnas definidas en `TEST_PLAN.md`.
+
+### 4.0 Observaciones físicas preliminares (2026-11-27)
+
+Informadas por el equipo tras grabar 10 tarjetas con el Grabador (Samsung + Chrome) en GitHub Pages.
+**Todavía no siguen el protocolo completo**: faltan modelo, versión del sistema, navegador, cantidad de
+interacciones, campos importados y número de intentos. No sirven aún para la decisión final.
+
+| Plataforma | Método | Observación | Falta registrar |
+|---|---|---|---|
+| Samsung | M12 B (vCard compacta → URL) | **Abre directamente la app Contactos**, sin navegador ni descarga. | Modelo, Android/One UI, interacciones, campos (la vCard compacta lleva 5 de 10), intentos |
+| iPhone | M02 (ficha + botón) | **Abre el contacto directamente** (sin descargar el archivo ni pasar por Descargas). El equipo lo prefiere en iPhone. | Modelo, iOS, interacciones, campos, intentos; comparación con M01 |
+| iPhone | M12 B | _Sin dato_: ¿abrió la URL del segundo registro? | Todo |
 
 **Hosting usado:** _(GitHub Pages / local / Netlify…)_ · **Commit del laboratorio:** _(hash)_
 
