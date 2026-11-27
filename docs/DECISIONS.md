@@ -156,5 +156,8 @@ La decisión final se registrará aquí como **D14** con los datos de
   (Contactos) e iPhone usa el primer registro URI (notificación → ficha del contacto, como en M01).
 - **Tamaño:** ~491 de 504 bytes en NTAG215 con los datos ficticios (margen de solo 13 bytes). Con nombres o direcciones reales más
   largos podría no caber: en producción habrá que limitar campos o usar NTAG216 (888 bytes).
-- **Pendiente para aceptar:** confirmar en iPhone que se abre la URL del segundo registro, 3/3 intentos en
+- **Primera confirmación física (2026-11-27):** la misma tarjeta M12 B+ funcionó en un iPhone y en un Samsung
+  (iPhone abre el `.vcf` del segundo registro; Samsung abre Contactos con la vCard). Es 1 teléfono por marca,
+  sin el registro completo del protocolo.
+- **Pendiente para aceptar:** registrar modelo/versión, interacciones y campos; 3/3 intentos en
   2 modelos por marca, conteo de interacciones y 10/10 campos.

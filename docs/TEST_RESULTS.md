@@ -98,7 +98,9 @@ interacciones, campos importados y número de intentos. No sirven aún para la d
 |---|---|---|---|
 | Samsung | M12 B (vCard compacta → URL) | **Abre directamente la app Contactos**, sin navegador ni descarga. | Modelo, Android/One UI, interacciones, campos (la vCard compacta lleva 5 de 10), intentos |
 | iPhone | M01 (`.vcf` directo) | **Abre el contacto directamente** (sin descargar el archivo ni pasar por Descargas). El equipo lo prefiere en iPhone. _(Corrección 2026-11-27: inicialmente se informó como M02.)_ | Modelo, iOS, interacciones, campos, intentos |
-| iPhone | M12 B | _Sin dato_: ¿abrió la URL del segundo registro? | Todo |
+| iPhone | M12 B | _Sin dato_ (no se probó con la vCard compacta). | — |
+| **iPhone** | **M12 B+** (vCard completa → URL del `.vcf`) | **Funciona**: iOS usa el registro URI aunque sea el **segundo** del mensaje y abre el contacto como en M01. | Modelo, iOS, interacciones, campos, 3 intentos |
+| **Samsung** | **M12 B+** (vCard completa → URL del `.vcf`) | **Funciona**: abre directamente la app Contactos con la vCard del primer registro. | Modelo, Android/One UI, interacciones, campos (10/10?), 3 intentos |
 
 **Hosting usado:** _(GitHub Pages / local / Netlify…)_ · **Commit del laboratorio:** _(hash)_
 
