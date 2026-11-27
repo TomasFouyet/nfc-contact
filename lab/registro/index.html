@@ -58,7 +58,13 @@
 
   <section class="panel">
     <h2>Guardados en este navegador (<span id="n">0</span>)</h2>
+    <p class="muted">Para pasarlos al computador: <strong>Enviar</strong> abre el menú de compartir del teléfono (WhatsApp, correo, Notas…). <strong>Descargar</strong> guarda un archivo .md con todos los registros.</p>
     <div class="btn-grid two">
+      <button class="btn primary" type="button" id="shareAll">Enviar resultados</button>
+      <button class="btn primary" type="button" id="downloadAll">Descargar archivo (.md)</button>
+    </div>
+    <p class="notice info" id="sendStatus" hidden></p>
+    <div class="btn-grid two" style="margin-top:10px">
       <button class="btn" type="button" id="copyAll">Copiar todo (Markdown)</button>
       <button class="btn" type="button" id="copyJson">Copiar todo (JSON)</button>
     </div>
@@ -114,6 +120,41 @@
   $('copy1').addEventListener('click', function () { Lab.copy($('md').textContent, $('copy1')); });
   $('copyAll').addEventListener('click', function () { Lab.copy(HEADER + '\n' + load().map(toRow).join('\n'), $('copyAll')); });
   $('copyJson').addEventListener('click', function () { Lab.copy(JSON.stringify(load(), null, 2), $('copyJson')); });
+  // ---- Exportar para enviar al computador ----
+  function exportText() {
+    var list = load();
+    var head = '# Resultados NFC Lab\n\nExportado: ' + new Date().toISOString().slice(0, 16).replace('T', ' ') +
+      ' · ' + Lab.env.browser + ' ' + Lab.env.browserVersion + ' · ' + Lab.env.os + ' ' + Lab.env.osVersion +
+      ' · ' + list.length + ' registro(s)\n\n';
+    return { list: list, md: head + HEADER + '\n' + list.map(toRow).join('\n') + '\n' };
+  }
+  function fileName(list) {
+    var model = (list.length && list[list.length - 1].modelo || 'telefono').replace(/\(.*?\)/g, '').trim().replace(/[^\w.-]+/g, '-');
+    return 'resultados-nfc-' + model + '-' + new Date().toISOString().slice(0, 10) + '.md';
+  }
+  function sendSay(m, cls) { var s = $('sendStatus'); s.hidden = false; s.className = 'notice ' + (cls || 'info'); s.textContent = m; }
+  $('shareAll').addEventListener('click', function () {
+    var x = exportText();
+    if (!x.list.length) return sendSay('No hay registros guardados todavía.', 'warn');
+    if (!navigator.share) {
+      Lab.copy(x.md, $('shareAll'));
+      return sendSay('Este navegador no tiene menú de compartir: se copió el texto. Pégalo en un correo o en WhatsApp.', 'warn');
+    }
+    navigator.share({ title: 'Resultados NFC Lab', text: x.md })
+      .then(function () { sendSay('Enviado.', 'ok'); })
+      .catch(function (e) { if (e.name !== 'AbortError') sendSay('No se pudo compartir (' + e.name + '). Usa "Descargar" o "Copiar".', 'err'); });
+  });
+  $('downloadAll').addEventListener('click', function () {
+    var x = exportText();
+    if (!x.list.length) return sendSay('No hay registros guardados todavía.', 'warn');
+    // Incluye el JSON completo (con User-Agent) para el análisis.
+    var content = x.md + '\n## Datos completos (JSON)\n\n```json\n' + JSON.stringify(x.list, null, 2) + '\n```\n';
+    var url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }));
+    Lab.clickLink(url, { download: fileName(x.list) });
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    sendSay('Archivo descargado (' + fileName(x.list) + '). En iPhone queda en la app Archivos; en Samsung, en Descargas.', 'ok');
+  });
+
   $('clear').addEventListener('click', function () { if (confirm('¿Borrar todos los registros guardados en este navegador?')) { store([]); refreshCount(); } });
 </script>
 </body>
