@@ -16,7 +16,7 @@
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
 
   var defaultBase = new URL('../c/', location.href).href;
-  var cfg = Object.assign({ publicBase: defaultBase, owner: '', repo: '', branch: 'main', dir: 'c/', registry: 'registro/personas.json', publicOk: false }, lsGet(K_CFG, {}));
+  var cfg = Object.assign({ publicBase: defaultBase, owner: '', repo: '', branch: 'main', dir: 'c/', registry: 'registro/personas.json', publicOk: false, cardMode: 'url' }, lsGet(K_CFG, {}));
   var token = lsGet(K_TOKEN, '');
   var persons = lsGet(K_PERSONS, []);
   var registrySha = null;     // sha del registro remoto (control de concurrencia)
@@ -237,12 +237,17 @@
     var pct = Math.min(100, Math.round(s.size / P.CAPACITY * 100));
     $('meter').className = 'meter' + (!s.fits ? ' err' : pct > 90 ? ' warn' : '');
     $('meter').firstElementChild.style.width = pct + '%';
+    var hybrid = P.mode(cfg) === 'hybrid';
+    $('chipBox').hidden = !hybrid;
+    $('modeTxt').textContent = hybrid
+      ? 'Tarjeta híbrida: vCard en el chip (Android abre Contactos directo) + URL del .vcf (iPhone). Los cambios de datos exigen regrabar la tarjeta.'
+      : 'Tarjeta solo con URL: los cambios se publican a distancia y las tarjetas entregadas se actualizan solas. iPhone abre la vista de guardar contacto; Android descarga el .vcf.';
     $('sizeTxt').textContent = 'Ocupa ' + s.size + ' de ' + P.CAPACITY + ' bytes (NTAG215)' + (s.fits ? (pct > 90 ? ' — muy justo: desmarca algún campo para dejar margen.' : '') : ' — NO CABE: desmarca campos del chip.');
     $('pubUrl').textContent = P.publicUrl(current, cfg) || '(configura la URL pública)';
     var saveState = dirty() ? ' Hay cambios sin guardar.' : '';
-    $('pubState').textContent = (saved && P.state(saved, cfg).published ? 'El .vcf publicado está al día.' : 'El .vcf todavía no está publicado con estos datos: el iPhone mostrará datos antiguos o un error hasta publicar.') + saveState;
+    $('pubState').textContent = (saved && P.state(saved, cfg).published ? 'Lo publicado está al día.' : 'Todavía no está publicado con estos datos: quien lea la tarjeta verá datos antiguos o un error hasta publicar.') + saveState;
     $('btnToggle').textContent = current.status === 'desactivada' ? 'Reactivar persona' : 'Desactivar persona';
-    $('btnPublish').textContent = syncOn() ? 'Publicar contacto (.vcf) en GitHub' : 'Publicar: descargar <id>.vcf para subir';
+    $('btnPublish').textContent = syncOn() ? 'Publicar en GitHub' : 'Publicar: descargar archivos para subir';
     $('btnWrite').disabled = !('NDEFReader' in window);
     var errs = P.validate(current, cfg);
     $('edErrors').hidden = !errs.length || !dirty(); $('edErrors').textContent = errs.join(' ');
@@ -297,21 +302,38 @@
     });
   }
 
+  function dirPath(rel) { return cfg.dir.replace(/\/?$/, '/') + rel; }
+  // Recursos comunes de las páginas públicas (c/assets/). Se copian desde el
+  // propio sitio del panel al repositorio si todavía no existen allí.
+  function ensureAssets(force) {
+    return Promise.all(['card.js', 'card.css'].map(function (f) {
+      return ghGet(dirPath('assets/' + f)).then(function (remote) {
+        if (remote && !force) return null;
+        return fetch(new URL('../c/assets/' + f, location.href).href, { cache: 'no-store' })
+          .then(function (r) { if (!r.ok) throw new Error('No se encontró c/assets/' + f + ' en el sitio del panel'); return r.text(); })
+          .then(function (t) { return ghPut(dirPath('assets/' + f), t, 'Publicar recurso común ' + f, remote && remote.sha); });
+      });
+    }));
+  }
+
   function publish() {
     return save().then(function (ok) {
       if (!ok) return;
-      var text = P.vcfText(current);
+      var vcf = P.vcfText(current), page = P.pageHtml(current);
       if (!syncOn()) {
-        download(current.id + '.vcf', text, 'text/vcard;charset=utf-8');
-        act('Descargado ' + current.id + '.vcf. Súbelo a la carpeta pública de contactos (por ejemplo, la carpeta c/ del repositorio, con "Add file → Upload files" en GitHub). Después la URL de la tarjeta mostrará estos datos.', 'warn');
-        current.published = { hash: P.vcfHash(current), at: new Date().toISOString(), manual: true };
+        download(current.id + '.vcf', vcf, 'text/vcard;charset=utf-8');
+        download(current.id + '-index.html', page, 'text/html;charset=utf-8');
+        act('Descargados 2 archivos. Súbelos a la carpeta pública: ' + current.id + '.vcf en ' + cfg.dir + ' y ' + current.id + '-index.html como ' + cfg.dir + current.id + '/index.html (en GitHub: "Add file → Create new file", escribe esa ruta y pega el contenido).', 'warn');
+        current.published = { hash: P.publishHash(current), at: new Date().toISOString(), manual: true };
         return commit('publicada (descarga manual)');
       }
       act('Publicando…');
       return (repoInfo ? Promise.resolve() : repoCheck())
-        .then(function () { return ghPutFresh(cfg.dir.replace(/\/?$/, '/') + current.id + '.vcf', text, 'Publicar contacto ' + current.id); })
+        .then(function () { return ensureAssets(false); })
+        .then(function () { return ghPutFresh(dirPath(current.id + '.vcf'), vcf, 'Publicar contacto ' + current.id); })
+        .then(function () { return ghPutFresh(dirPath(current.id + '/index.html'), page, 'Publicar página ' + current.id); })
         .then(function () {
-          current.published = { hash: P.vcfHash(current), at: new Date().toISOString() };
+          current.published = { hash: P.publishHash(current), at: new Date().toISOString() };
           act('Publicado. El hosting puede tardar unos minutos en mostrar la versión nueva.', 'ok');
           return commit('publicada');
         })
@@ -321,24 +343,35 @@
 
   function toggleStatus() {
     var deactivate = current.status !== 'desactivada';
-    if (deactivate && !confirm('Desactivar a ' + P.fullName(current) + '.\n\nSe retira el .vcf publicado (iPhone dejará de mostrar el contacto). Las tarjetas ya grabadas seguirán entregando la vCard del chip en Samsung: recupéralas o regrábalas.\n\n¿Continuar?')) return;
+    var hybridNote = P.mode(cfg) === 'hybrid' ? ' Las tarjetas híbridas seguirán entregando la vCard del chip en Android: recupéralas o regrábalas.' : '';
+    if (deactivate && !confirm('Desactivar a ' + P.fullName(current) + '.\n\nSu página mostrará "Contacto no disponible" y se retira su .vcf.' + hybridNote + '\n\n¿Continuar?')) return;
     current.status = deactivate ? 'desactivada' : 'activa';
-    var path = cfg.dir.replace(/\/?$/, '/') + current.id + '.vcf';
     var step = Promise.resolve();
     if (deactivate) {
       current.published = null;
-      if (syncOn()) step = ghDelete(path, 'Retirar contacto ' + current.id).catch(function (e) { toast('No se pudo retirar el .vcf: ' + e.message, 'err'); });
-      else act('Borra manualmente el archivo ' + current.id + '.vcf de la carpeta pública.', 'warn');
+      if (syncOn()) {
+        step = ghPutFresh(dirPath(current.id + '/index.html'), P.inactivePageHtml(), 'Desactivar página ' + current.id)
+          .then(function () { return ghDelete(dirPath(current.id + '.vcf'), 'Retirar contacto ' + current.id); })
+          .catch(function (e) { toast('No se pudo retirar la publicación: ' + e.message, 'err'); });
+      } else {
+        download(current.id + '-index.html', P.inactivePageHtml(), 'text/html;charset=utf-8');
+        act('Reemplaza ' + cfg.dir + current.id + '/index.html por el archivo descargado y borra ' + cfg.dir + current.id + '.vcf.', 'warn');
+      }
     }
     step.then(function () { return commit(deactivate ? 'desactivada' : 'reactivada'); })
-      .then(function () { if (!deactivate) act('Reactivada. Publica de nuevo el .vcf.', 'warn'); });
+      .then(function () { if (!deactivate) act('Reactivada. Publica de nuevo para que la tarjeta vuelva a funcionar.', 'warn'); });
   }
 
   function removePerson() {
     if (!find(current.id)) { closeEditor(); return; }
-    if (!confirm('Eliminar definitivamente a ' + P.fullName(current) + ' del registro?\n(Se retira también su .vcf publicado.)')) return;
-    var id = current.id, path = cfg.dir.replace(/\/?$/, '/') + id + '.vcf';
-    var step = syncOn() ? ghDelete(path, 'Eliminar contacto ' + id).catch(function () {}) : Promise.resolve();
+    var hasCards = (current.cards || []).some(function (c) { return !c.retired; });
+    if (!confirm('Eliminar definitivamente a ' + P.fullName(current) + ' del registro?' +
+      (hasCards ? '\n\nTiene tarjetas entregadas: su página mostrará "Contacto no disponible".' : '') + '\n(Se retira también su .vcf publicado.)')) return;
+    var id = current.id;
+    var step = syncOn()
+      ? ghPutFresh(dirPath(id + '/index.html'), P.inactivePageHtml(), 'Eliminar persona ' + id)
+          .then(function () { return ghDelete(dirPath(id + '.vcf'), 'Eliminar contacto ' + id); }).catch(function () {})
+      : Promise.resolve();
     step.then(function () {
       persons = persons.filter(function (p) { return p.id !== id; });
       saveLocal(); closeEditor();
@@ -365,6 +398,20 @@
     });
   }
 
+  // Registros que debe contener la tarjeta de una persona, según el tipo de tarjeta.
+  function expected(p) {
+    var out = [];
+    if (P.mode(cfg) === 'hybrid') out.push({ media: 'text/vcard', text: P.chipText(p) });
+    out.push({ media: '', text: P.publicUrl(p, cfg) });
+    return out;
+  }
+  function matches(recs, p) {
+    var exp = expected(p);
+    return recs.length === exp.length && exp.every(function (e, i) {
+      return recs[i].text === e.text && (e.media ? recs[i].media === e.media : recs[i].type === 'url');
+    });
+  }
+
   function writeCard() {
     if (!('NDEFReader' in window)) return;
     save().then(function (ok) {
@@ -374,11 +421,10 @@
       if (!url) { act('Configura primero la URL pública.', 'err'); return; }
       var s = P.state(current, cfg);
       if (!s.fits) { act('No cabe en la tarjeta: desmarca campos del chip.', 'err'); return; }
-      if (!s.published && !confirm('El .vcf todavía no está publicado con estos datos: el iPhone no mostrará el contacto correcto hasta publicar. ¿Grabar igual?')) return;
-      var records = [
-        { recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(P.chipText(current)) },
-        { recordType: 'url', data: url }
-      ];
+      if (!s.published && !confirm('Todavía no está publicado con estos datos: la tarjeta no mostrará el contacto correcto hasta publicar. ¿Grabar igual?')) return;
+      var records = expected(current).map(function (r) {
+        return r.media ? { recordType: 'mime', mediaType: r.media, data: new TextEncoder().encode(r.text) } : { recordType: 'url', data: r.text };
+      });
       stopScan();
       act('Acerca la tarjeta a la parte trasera del teléfono…');
       new NDEFReader().write({ records: records }, { overwrite: true }).then(function () {
@@ -397,8 +443,7 @@
     var timer = setTimeout(stopScan, 30000);
     reader.scan({ signal: scanAbort.signal }).then(function () {
       reader.onreading = function (ev) {
-        var recs = decodeRecords(ev), url = P.publicUrl(current, cfg);
-        var ok = recs.length === 2 && recs[0].media === 'text/vcard' && recs[0].text === P.chipText(current) && recs[1].text === url;
+        var ok = matches(decodeRecords(ev), current);
         var c = current.cards.filter(function (x) { return x.id === cardId; })[0];
         clearTimeout(timer); stopScan();
         if (!c) return;
@@ -429,7 +474,7 @@
           lines.push(m ? 'vCard de: ' + m[1].replace(/\\,/g, ',') : '', 'La tarjeta no corresponde a ninguna persona del registro.');
           out.textContent = lines.filter(Boolean).join('\n'); return;
         }
-        var upToDate = recs[0] && recs[0].text === P.chipText(p) && urlRec.text === P.publicUrl(p, cfg);
+        var upToDate = matches(recs, p);
         lines.push('Persona: ' + P.fullName(p) + ' (' + p.id + ')' + (p.status === 'desactivada' ? ' — DESACTIVADA' : ''));
         lines.push(upToDate ? 'Contenido al día.' : 'Contenido DESACTUALIZADO: regrabar.');
         out.textContent = lines.join('\n');
@@ -451,7 +496,7 @@
   // ------------------------------------------------------------------
   // Configuración y respaldo
   // ------------------------------------------------------------------
-  var CFG_FIELDS = { cfgBase: 'publicBase', cfgOwner: 'owner', cfgRepo: 'repo', cfgBranch: 'branch', cfgDir: 'dir', cfgReg: 'registry' };
+  var CFG_FIELDS = { cfgMode: 'cardMode', cfgBase: 'publicBase', cfgOwner: 'owner', cfgRepo: 'repo', cfgBranch: 'branch', cfgDir: 'dir', cfgReg: 'registry' };
   function fillSettings() {
     for (var id in CFG_FIELDS) $(id).value = cfg[CFG_FIELDS[id]] || '';
     $('cfgToken').value = token ? '••••••••' : '';
@@ -459,15 +504,16 @@
   }
   function cfgSay(m, cls) { var s = $('cfgStatus'); s.hidden = false; s.className = 'notice ' + (cls || 'info'); s.textContent = m; }
   function readSettings() {
-    var oldBase = cfg.publicBase;
+    var oldBase = cfg.publicBase + '|' + cfg.cardMode;
     for (var id in CFG_FIELDS) cfg[CFG_FIELDS[id]] = $(id).value.trim();
     if (cfg.publicBase && !/\/$/.test(cfg.publicBase)) cfg.publicBase += '/';
+    cfg.cardMode = cfg.cardMode === 'hybrid' ? 'hybrid' : 'url';
     cfg.branch = cfg.branch || 'main'; cfg.dir = cfg.dir || 'c/'; cfg.registry = cfg.registry || 'registro/personas.json';
     cfg.publicOk = $('cfgPublicOk').checked;
     var t = $('cfgToken').value.trim();
     if (t && t !== '••••••••') { token = t; lsSet(K_TOKEN, token); }
     lsSet(K_CFG, cfg); repoInfo = null;
-    return oldBase !== cfg.publicBase;
+    return oldBase !== cfg.publicBase + '|' + cfg.cardMode;
   }
 
   // ------------------------------------------------------------------
@@ -489,7 +535,7 @@
   $('cfgSave').onclick = function () {
     var baseChanged = readSettings();
     renderStorage(); renderList(); if (current) refreshPreview();
-    cfgSay('Configuración guardada en este dispositivo.' + (baseChanged && persons.some(function (p) { return (p.cards || []).length; }) ? ' Cambiaste la URL pública: las tarjetas ya grabadas apuntan a la anterior y quedan por regrabar.' : ''), baseChanged ? 'warn' : 'ok');
+    cfgSay('Configuración guardada en este dispositivo.' + (baseChanged && persons.some(function (p) { return (p.cards || []).length; }) ? ' Cambiaste la URL pública o el tipo de tarjeta: las tarjetas ya grabadas quedan marcadas para regrabar.' : ''), baseChanged ? 'warn' : 'ok');
   };
   $('cfgTest').onclick = function () {
     readSettings();
@@ -510,6 +556,14 @@
     }).catch(function (e) { cfgSay('Error: ' + e.message, 'err'); });
   };
   $('cfgForget').onclick = function () { token = ''; try { localStorage.removeItem(K_TOKEN); } catch (e) {} fillSettings(); renderStorage(); cfgSay('Token eliminado de este dispositivo.', 'ok'); };
+  $('cfgAssets').onclick = function () {
+    readSettings();
+    if (!syncOn()) return cfgSay('Sin sincronización: sube manualmente c/assets/card.js y card.css a la carpeta pública.', 'warn');
+    cfgSay('Actualizando…');
+    (repoInfo ? Promise.resolve() : repoCheck()).then(function () { return ensureAssets(true); })
+      .then(function () { cfgSay('Recursos actualizados: el cambio aplica a todas las páginas publicadas.', 'ok'); })
+      .catch(function (e) { cfgSay('Error: ' + e.message, 'err'); });
+  };
   $('btnExport').onclick = function () { download('registro-tarjetas-' + new Date().toISOString().slice(0, 10) + '.json', P.registryJson(persons), 'application/json'); };
   $('fileImport').onchange = function (e) {
     var f = e.target.files[0]; if (!f) return;

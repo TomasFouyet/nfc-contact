@@ -44,8 +44,8 @@ es una hipótesis hasta que se valide con pruebas físicas.
 
 ## Panel de tarjetas
 
-[`panel/`](panel/) registra a las personas, publica su `.vcf` y graba sus
-tarjetas con el método M12 B+ (vCard en el chip + URL del `.vcf`). Incluye un
+[`panel/`](panel/) registra a las personas, publica su página de contacto y graba sus
+tarjetas (por defecto, solo con URL: los datos se cambian a distancia). Incluye un
 historial de cambios y detecta las tarjetas que hay que regrabar. Ver
 [docs/PANEL.md](docs/PANEL.md), en especial la sección sobre **dónde se
 guardan los datos**: este repositorio es público.
@@ -76,7 +76,7 @@ tools/check-headers.sh https://tomasfouyet.github.io/nfc-contact   # cabeceras r
 ```
 index.html, tomas.vcf    Prototipo original (no modificar)
 panel/                   Panel de tarjetas (personas, publicación, grabación)
-c/                       Contactos publicados por el panel (<id>.vcf)
+c/                       Páginas y contactos publicados por el panel (<id>/, <id>.vcf, assets/)
 lab/                     Laboratorio estático (GitHub Pages compatible)
   assets/                contact.js (datos + generadores), methods.js, lab.js, lab.css
   vcards/, http/         Archivos vCard generados

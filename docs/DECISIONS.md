@@ -147,7 +147,7 @@ todavía.**
 La decisión final se registrará aquí como **D14** con los datos de
 `TEST_RESULTS.md`.
 
-## D14 · Método recomendado — Candidato preliminar (2026-11-27)
+## D14 · Método recomendado — Reemplazada por D17 (validada técnicamente, descartada por el requisito de actualización remota)
 
 - **Observación física preliminar** (ver `TEST_RESULTS.md` §4.0): en Samsung, M12 B abre directamente
   Contactos; en iPhone, el equipo prefiere M01 (`.vcf` directo) porque abre el contacto sin pasar por descargas (corregido: inicialmente se informó M02).
@@ -184,3 +184,27 @@ La decisión final se registrará aquí como **D14** con los datos de
 - **Pendiente (equipo):** elegir el hosting y el **dominio estable** para la
   URL de las tarjetas antes de producirlas en cantidad. Cambiarlo obliga a
   regrabar todas las tarjetas.
+
+## D17 · Tarjetas solo con URL para actualizar a distancia — Aceptada (2026-11-27)
+
+- **Requisito del equipo:** los datos deben poder cambiarse **a distancia**, y
+  la URL de la tarjeta debe quedar **bloqueada** para que nadie la modifique.
+- **Consecuencia:** la vCard no puede ir en el chip (no se actualiza a
+  distancia). Samsung vuelve al flujo de descarga (página → descargar → abrir
+  → importar), que según las pruebas físicas es parecido en M01–M05.
+- **Decisión:** la tarjeta lleva **un solo registro URL** a una página propia
+  por persona, `c/<id>/`, que:
+  - en iPhone redirige al `.vcf` (validado: M05.1 = M01, va directo a guardar
+    el contacto);
+  - en Android muestra la ficha con "Guardar contacto" (nombre de archivo
+    legible) e instrucciones para abrir la descarga.
+- **Por qué una página y no el `.vcf` directo:** la URL bloqueada no se puede
+  cambiar nunca, pero el comportamiento de la página (`c/assets/card.js`) sí.
+  Si más adelante se encuentra un flujo mejor para Samsung, se aplica a
+  todas las tarjetas ya entregadas.
+- **M12 B+ (híbrida)** queda como opción en el panel ("Tipo de tarjeta"), pero
+  no es la opción por defecto.
+- **Pendiente (equipo):** bloqueo permanente o con contraseña, y dominio
+  propio. **No bloquear tarjetas hasta tener el dominio definitivo:** una
+  tarjeta bloqueada con `tomasfouyet.github.io` dependerá para siempre de esa
+  cuenta personal.

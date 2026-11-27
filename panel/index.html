@@ -36,7 +36,7 @@
 <main>
   <div class="topbar"><a href="../lab/">← Laboratorio</a><span class="badge">Panel · piloto</span></div>
   <h1>Tarjetas NFC</h1>
-  <p class="muted">Registra a cada persona, publica su contacto y graba su tarjeta (vCard completa en el chip + URL del <code>.vcf</code>, método M12 B+).</p>
+  <p class="muted">Registra a cada persona, publica su página de contacto y graba su tarjeta. Por defecto la tarjeta lleva solo una URL: los datos se cambian a distancia, sin tocar la tarjeta.</p>
   <div id="storage"></div>
 
   <div class="toolbar">
@@ -50,9 +50,16 @@
     <h2>Configuración</h2>
     <form onsubmit="return false">
       <div class="field">
+        <label for="cfgMode">Tipo de tarjeta</label>
+        <select id="cfgMode">
+          <option value="url">Solo URL — cambios a distancia (recomendado)</option>
+          <option value="hybrid">Híbrida vCard + URL (M12 B+) — Android abre Contactos directo, pero hay que regrabar cada cambio</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="cfgBase">URL pública de la carpeta de contactos (.vcf)</label>
         <input type="text" id="cfgBase" placeholder="https://tomasfouyet.github.io/nfc-contact/c/">
-        <p class="muted">Cada persona queda en <code>&lt;esta URL&gt;&lt;id&gt;.vcf</code>. Esta URL se graba en la tarjeta: después no se puede cambiar sin regrabar todas las tarjetas. Conviene usar un dominio propio estable.</p>
+        <p class="muted">Cada persona queda en <code>&lt;esta URL&gt;&lt;id&gt;/</code> (página) y <code>&lt;id&gt;.vcf</code>. Esta URL se graba en la tarjeta: después no se puede cambiar sin regrabar todas las tarjetas. Conviene usar un dominio propio estable.</p>
       </div>
       <h3>Sincronización con GitHub (opcional)</h3>
       <p class="muted">Sin sincronización, los datos viven solo en este navegador (usa Exportar/Importar para pasarlos a otro dispositivo). Con sincronización, el registro y los <code>.vcf</code> se guardan en un repositorio, con historial de cambios.</p>
@@ -78,6 +85,7 @@
         <button class="btn" type="button" id="cfgPull">Cargar registro desde GitHub</button>
         <button class="btn" type="button" id="cfgForget">Olvidar token en este dispositivo</button>
       </div>
+      <p style="margin-top:10px"><button class="btn" type="button" id="cfgAssets">Actualizar recursos comunes de las páginas (card.js / card.css)</button></p>
       <h3>Respaldo</h3>
       <div class="btn-grid two">
         <button class="btn" type="button" id="btnExport">Exportar registro (.json)</button>
@@ -116,11 +124,14 @@
 
         <section class="panel">
           <h2>Contenido de la tarjeta</h2>
-          <p class="muted">Campos incluidos en la vCard del chip (lo que ve Samsung). El <code>.vcf</code> publicado (iPhone) siempre lleva todos.</p>
-          <div class="chips" id="chips"></div>
+          <p class="muted" id="modeTxt"></p>
+          <div id="chipBox">
+            <p class="muted">Campos incluidos en la vCard del chip (lo que ve Android). El <code>.vcf</code> publicado siempre lleva todos.</p>
+            <div class="chips" id="chips"></div>
+          </div>
           <p style="margin-top:10px"><span id="sizeTxt"></span></p>
           <div class="meter" id="meter"><div></div></div>
-          <div class="url-label">URL grabada en la tarjeta (iPhone)</div>
+          <div class="url-label">URL grabada en la tarjeta</div>
           <div class="url-row"><code id="pubUrl"></code><button class="btn small" type="button" id="btnCopyUrl">Copiar</button></div>
           <p id="pubState" class="muted"></p>
         </section>
@@ -128,7 +139,7 @@
         <section class="panel">
           <h2>Acciones</h2>
           <div class="btn-grid">
-            <button class="btn primary" type="button" id="btnPublish">Publicar contacto (.vcf)</button>
+            <button class="btn primary" type="button" id="btnPublish">Publicar</button>
             <button class="btn primary" type="button" id="btnWrite">Grabar tarjeta</button>
             <button class="btn" type="button" id="btnDownload">Descargar .vcf</button>
             <button class="btn" type="button" id="btnToggle">Desactivar persona</button>

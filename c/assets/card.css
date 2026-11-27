@@ -1,0 +1,27 @@
+/* Página pública de contacto (una por persona). Sin dependencias. */
+:root {
+  --bg: #f4f5f7; --surface: #fff; --text: #15181d; --muted: #5c6470; --border: #dde1e6;
+  --accent: #0a5bd3; --accent-text: #fff; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 24px rgba(0,0,0,.06);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f1115; --surface: #181b21; --text: #e9ecf1; --muted: #9aa3ae; --border: #2c313a; --accent: #5b9dff; --accent-text: #0b0d10; --shadow: none; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+main { padding: 16px; }
+.vc { max-width: 420px; margin: 8px auto; background: var(--surface); border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); padding: 28px 22px 18px; text-align: center; }
+.vc-avatar { width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 12px; display: grid; place-items: center; background: linear-gradient(135deg, #1f4fa8, #3d8bfd); color: #fff; font-size: 1.9rem; font-weight: 700; }
+.vc-name { font-size: 1.5rem; margin: 0; line-height: 1.25; }
+.vc-role { margin: 4px 0 0; color: var(--muted); }
+.vc-org { margin: 2px 0 18px; font-weight: 600; }
+.vc-actions { display: grid; gap: 10px; margin-bottom: 14px; }
+.btn { display: flex; align-items: center; justify-content: center; min-height: 52px; padding: 12px 18px; border-radius: 12px; background: var(--accent); color: var(--accent-text); font: inherit; font-weight: 600; text-decoration: none; border: 0; }
+.hint { font-size: .88rem; color: var(--muted); margin: 0; }
+.vc-rows { list-style: none; padding: 0; margin: 0; text-align: left; border-top: 1px solid var(--border); }
+.vc-rows li { border-bottom: 1px solid var(--border); }
+.vc-rows a, .vc-rows span.vc-row { display: block; padding: 12px 4px; color: var(--text); text-decoration: none; }
+.vc-rows .k { display: block; font-size: .75rem; color: var(--muted); }
+.vc-rows .v { display: block; word-break: break-word; }
+.vc-foot { font-size: .75rem; color: var(--muted); margin-top: 12px; }

@@ -94,23 +94,39 @@ try {
     assert.match(await page.textContent('#history'), /editada.*Cargo/);
   });
 
-  await step('excluir la dirección del chip reduce el tamaño', async () => {
-    const before = Number((await page.textContent('#sizeTxt')).match(/Ocupa (\d+)/)[1]);
-    await page.uncheck('#chip_adr');
-    const after = Number((await page.textContent('#sizeTxt')).match(/Ocupa (\d+)/)[1]);
-    assert.ok(after < before, `${after} < ${before}`);
-    await page.check('#chip_adr');
+  await step('modo por defecto: tarjeta solo con URL a la página', async () => {
+    const id = (await page.textContent('#edId')).replace('id ', '');
+    assert.match(await page.textContent('#pubUrl'), new RegExp('/c/' + id + '/$'));
+    assert.equal(await page.isHidden('#chipBox'), true);
   });
 
-  await step('publicar sin sincronización descarga <id>.vcf válido', async () => {
+  await step('publicar sin sincronización descarga <id>.vcf válido y su página', async () => {
     const id = (await page.textContent('#edId')).replace('id ', '');
+    const downloads = [];
+    page.on('download', (d) => downloads.push(d));
     const [d] = await Promise.all([page.waitForEvent('download'), page.click('#btnPublish')]);
+    await page.waitForTimeout(500);
+    assert.deepEqual(downloads.map((x) => x.suggestedFilename()).sort(), [id + '-index.html', id + '.vcf'].sort());
     assert.equal(d.suggestedFilename(), id + '.vcf');
     const text = require('fs').readFileSync(await d.path(), 'utf8');
     assert.match(text, /^BEGIN:VCARD\r\nVERSION:3\.0\r\n/);
     assert.match(text, /FN:Valentina Rojas Ibáñez\r\n/);
     assert.match(text, /TITLE:Gerenta de Operaciones/);
+  });
+
+  await step('modo híbrido muestra los campos del chip', async () => {
+    await page.click('#btnSettings');
+    await page.selectOption('#cfgMode', 'hybrid'); await page.click('#cfgSave');
+    const id = (await page.textContent('#edId')).replace('id ', '');
     assert.match(await page.textContent('#pubUrl'), new RegExp('/c/' + id + '\\.vcf$'));
+    assert.equal(await page.isVisible('#chipBox'), true);
+    const before = Number((await page.textContent('#sizeTxt')).match(/Ocupa (\d+)/)[1]);
+    await page.uncheck('#chip_adr');
+    const after = Number((await page.textContent('#sizeTxt')).match(/Ocupa (\d+)/)[1]);
+    assert.ok(after < before, `${after} < ${before}`);
+    await page.check('#chip_adr');
+    await page.selectOption('#cfgMode', 'url'); await page.click('#cfgSave');
+    await page.click('#btnSettings');
   });
 
   await step('exportar registro JSON', async () => {
@@ -129,11 +145,13 @@ try {
     await page.waitForFunction(() => /privado/.test(document.querySelector('#cfgStatus').textContent));
   });
 
-  await step('publicar sube el .vcf y el registro', async () => {
+  await step('publicar sube el .vcf, la página, los recursos comunes y el registro', async () => {
     const id = (await page.textContent('#edId')).replace('id ', '');
     await page.click('#btnPublish');
     await page.waitForFunction(() => /Publicado/.test(document.querySelector('#actStatus').textContent));
     assert.match(decode(repo.files['c/' + id + '.vcf'].b64), /FN:Valentina Rojas Ibáñez/);
+    assert.match(decode(repo.files['c/' + id + '/index.html'].b64), /window\.CARD = /);
+    assert.ok(repo.files['c/assets/card.js'] && repo.files['c/assets/card.css'], 'recursos comunes publicados');
     const reg = JSON.parse(decode(repo.files['registro/personas.json'].b64));
     assert.equal(reg.persons[0].id, id);
     assert.match(await page.textContent('#list'), /Publicado/);
@@ -151,6 +169,7 @@ try {
     await page.click('#btnToggle');
     await page.waitForFunction(() => /Desactivada/.test(document.querySelector('#list').textContent));
     assert.equal(repo.files['c/' + id + '.vcf'], undefined);
+    assert.match(decode(repo.files['c/' + id + '/index.html'].b64), /no disponible/);
   });
 
   await step('captura de pantalla', async () => {
@@ -173,6 +192,42 @@ try {
   });
 
   await step('sin errores de JavaScript', async () => { assert.deepEqual(errors, []); });
+
+  // ---- Página pública real servida por el servidor local ----
+  const P = require(join(ROOT, 'panel/panel-core.js'));
+  const fs = require('fs');
+  const pub = Object.assign(P.emptyPerson(), { id: 'e2etest000', given: 'Valentina', family: 'Rojas Ibáñez', org: 'Ejemplo Ingeniería SpA', title: 'Jefa de Proyectos', cell: '+56 9 0000 0101', email: 'valentina.rojas@example.com' });
+  fs.mkdirSync(join(ROOT, 'c/e2etest000'), { recursive: true });
+  fs.writeFileSync(join(ROOT, 'c/e2etest000/index.html'), P.pageHtml(pub));
+  fs.writeFileSync(join(ROOT, 'c/e2etest000.vcf'), P.vcfText(pub));
+  try {
+    await step('página pública en iPhone (UA): redirige al .vcf', async () => {
+      const c = await browser.newContext({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1', acceptDownloads: true });
+      const pg = await c.newPage();
+      const dl = pg.waitForEvent('download', { timeout: 5000 });
+      pg.goto(BASE + '/c/e2etest000/').catch(() => {});
+      const d = await dl;
+      assert.equal(d.url(), BASE + '/c/e2etest000.vcf');
+      await c.close();
+    });
+    await step('página pública en Android (UA): ficha + botón con nombre legible + ayuda', async () => {
+      const c = await browser.newContext({ userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/28.0 Chrome/130.0.0.0 Mobile Safari/537.36', viewport: { width: 384, height: 854 }, acceptDownloads: true });
+      const pg = await c.newPage();
+      const errs = []; pg.on('pageerror', (e) => errs.push(e.message));
+      await pg.goto(BASE + '/c/e2etest000/');
+      assert.match(await pg.textContent('.vc-name'), /Valentina Rojas Ibáñez/);
+      assert.equal(await pg.getAttribute('#save', 'download'), 'Valentina-Rojas-Ibanez.vcf');
+      assert.match(await pg.textContent('.hint'), /Importar/);
+      const [d] = await Promise.all([pg.waitForEvent('download'), pg.click('#save')]);
+      assert.equal(d.suggestedFilename(), 'Valentina-Rojas-Ibanez.vcf');
+      await pg.screenshot({ path: join(OUT, 'pagina-publica-android.png') });
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  } finally {
+    fs.rmSync(join(ROOT, 'c/e2etest000'), { recursive: true, force: true });
+    fs.rmSync(join(ROOT, 'c/e2etest000.vcf'), { force: true });
+  }
 
   const wide = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const pw = await wide.newPage();

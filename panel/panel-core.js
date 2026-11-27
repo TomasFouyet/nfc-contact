@@ -74,15 +74,20 @@
   // vCard del chip (Samsung): sin los campos desmarcados.
   function chipText(p) { return C.buildVCard(toContact(p), { version: '3.0', omit: chipOmit(p) }); }
 
-  // cfg.publicBase: URL de la carpeta pública donde viven los .vcf (termina en /).
-  function publicUrl(p, cfg) {
-    var base = trim(cfg && cfg.publicBase);
-    if (!base) return '';
-    return base.replace(/\/?$/, '/') + p.id + '.vcf';
-  }
+  // Tipos de tarjeta:
+  //   'url'    (por defecto) solo URL a la página c/<id>/ → todo se actualiza a distancia.
+  //   'hybrid' vCard en el chip + URL del .vcf (M12 B+) → Samsung abre Contactos directo,
+  //            pero los cambios exigen regrabar la tarjeta.
+  // cfg.publicBase: URL de la carpeta pública (termina en /).
+  function mode(cfg) { return (cfg && cfg.cardMode) === 'hybrid' ? 'hybrid' : 'url'; }
+  function base(cfg) { var b = trim(cfg && cfg.publicBase); return b ? b.replace(/\/?$/, '/') : ''; }
+  function vcfUrl(p, cfg) { return base(cfg) ? base(cfg) + p.id + '.vcf' : ''; }
+  function pageUrl(p, cfg) { return base(cfg) ? base(cfg) + p.id + '/' : ''; }
+  // URL que se graba en la tarjeta.
+  function publicUrl(p, cfg) { return mode(cfg) === 'hybrid' ? vcfUrl(p, cfg) : pageUrl(p, cfg); }
   function chipRecords(p, cfg) {
-    var recs = [C.mimeRecord('text/vcard', chipText(p))];
-    var u = publicUrl(p, cfg);
+    var recs = [], u = publicUrl(p, cfg);
+    if (mode(cfg) === 'hybrid') recs.push(C.mimeRecord('text/vcard', chipText(p)));
     if (u) recs.push(C.uriRecord(u));
     return recs;
   }
@@ -95,8 +100,44 @@
     for (var i = 0; i < bytes.length; i++) { h ^= bytes[i]; h = Math.imul(h, 0x01000193) >>> 0; }
     return ('0000000' + h.toString(16)).slice(-8);
   }
-  function chipHash(p, cfg) { return hash(chipText(p) + '\n' + publicUrl(p, cfg)); }
+  function chipHash(p, cfg) {
+    return mode(cfg) === 'hybrid' ? hash(chipText(p) + '\n' + publicUrl(p, cfg)) : hash('url\n' + publicUrl(p, cfg));
+  }
   function vcfHash(p) { return hash(vcfText(p)); }
+  function publishHash(p) { return hash(vcfText(p) + '\n' + pageHtml(p)); }
+
+  // ------------------------------------------------------------------
+  // Página pública c/<id>/index.html (rutas relativas: funciona en cualquier hosting)
+  // ------------------------------------------------------------------
+  function escHtml(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function pageData(p) {
+    var c = toContact(p);
+    return {
+      name: c.fullName, given: c.givenName, family: c.familyName, org: c.org, title: c.title,
+      cell: c.cell, cellDisplay: trim(p.cell), work: c.work, workDisplay: trim(p.work), email: c.email, url: c.url,
+      address: [c.adr.street, c.adr.locality, c.adr.region, c.adr.country].filter(Boolean).join(', '),
+      vcf: '../' + p.id + '.vcf', fileName: fileName(p)
+    };
+  }
+  function pageShell(title, dataJson, body) {
+    return '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta name="robots" content="noindex, nofollow">\n' +
+      '<title>' + escHtml(title) + '</title>\n<link rel="stylesheet" href="../assets/card.css">\n</head>\n<body>\n<main id="card">\n' +
+      body + '\n</main>\n<script>window.CARD = ' + dataJson.replace(/</g, '\\u003c') + ';</script>\n' +
+      '<script src="../assets/card.js"></script>\n</body>\n</html>\n';
+  }
+  function pageHtml(p) {
+    var d = pageData(p);
+    // Contenido estático de respaldo (si JavaScript falla, igual se puede guardar).
+    var body = '<article class="vc"><h1 class="vc-name">' + escHtml(d.name) + '</h1>' +
+      '<p class="vc-org">' + escHtml([d.title, d.org].filter(Boolean).join(' · ')) + '</p>' +
+      '<div class="vc-actions"><a class="btn" href="' + escHtml(d.vcf) + '">Guardar contacto</a></div></article>';
+    return pageShell(d.name || 'Contacto', JSON.stringify(d), body);
+  }
+  function inactivePageHtml() {
+    return pageShell('Contacto no disponible', '{"inactive":true}',
+      '<article class="vc"><h1 class="vc-name">Contacto no disponible</h1><p class="vc-role">Esta tarjeta ya no está activa.</p></article>');
+  }
 
   function validate(p, cfg) {
     var errs = [];
@@ -108,7 +149,7 @@
       var n = normalizePhone(p[k]);
       if (trim(p[k]) && (n.replace('+', '').length < 8 || n.replace('+', '').length > 15)) errs.push('Revisa el ' + (k === 'cell' ? 'móvil' : 'teléfono de trabajo') + '.');
     });
-    if (chipSize(p, cfg) > CAPACITY) errs.push('No cabe en la tarjeta NTAG215 (' + chipSize(p, cfg) + ' de ' + CAPACITY + ' bytes): desmarca campos del chip.');
+    if (mode(cfg) === 'hybrid' && chipSize(p, cfg) > CAPACITY) errs.push('No cabe en la tarjeta NTAG215 (' + chipSize(p, cfg) + ' de ' + CAPACITY + ' bytes): desmarca campos del chip.');
     return errs;
   }
 
@@ -126,7 +167,7 @@
     var cards = p.cards || [];
     var outdated = cards.filter(function (c) { return c.hash !== ch && !c.retired; });
     return {
-      published: !!(p.published && p.published.hash === vcfHash(p)),
+      published: !!(p.published && p.published.hash === publishHash(p)),
       neverPublished: !p.published,
       cards: cards.filter(function (c) { return !c.retired; }).length,
       outdatedCards: outdated.length,
@@ -137,7 +178,7 @@
 
   // Extrae el id de persona desde una URL publicada (…/<id>.vcf).
   function idFromUrl(url) {
-    var m = String(url || '').match(/\/([a-z0-9]{6,32})\.vcf(?:[?#].*)?$/i);
+    var m = String(url || '').match(/\/([a-z0-9]{6,32})(?:\.vcf|\/)?(?:[?#].*)?$/i);
     return m ? m[1] : null;
   }
 
@@ -162,7 +203,8 @@
     FIELDS: FIELDS, CHIP_KEYS: CHIP_KEYS, CAPACITY: CAPACITY,
     newId: newId, normalizePhone: normalizePhone, emptyPerson: emptyPerson, fullName: fullName, fileName: fileName,
     toContact: toContact, vcfText: vcfText, chipText: chipText, publicUrl: publicUrl, chipRecords: chipRecords,
-    chipSize: chipSize, hash: hash, chipHash: chipHash, vcfHash: vcfHash, validate: validate, diff: diff,
+    chipSize: chipSize, hash: hash, chipHash: chipHash, vcfHash: vcfHash, publishHash: publishHash, validate: validate, diff: diff,
+    mode: mode, vcfUrl: vcfUrl, pageUrl: pageUrl, pageHtml: pageHtml, inactivePageHtml: inactivePageHtml,
     state: state, idFromUrl: idFromUrl, registryJson: registryJson, parseRegistry: parseRegistry
   };
 });

@@ -102,6 +102,9 @@ interacciones, campos importados y número de intentos. No sirven aún para la d
 | **iPhone** | **M12 B+** (vCard completa → URL del `.vcf`) | **Funciona**: iOS usa el registro URI aunque sea el **segundo** del mensaje y abre el contacto como en M01. | Modelo, iOS, interacciones, campos, 3 intentos |
 | **Samsung** | **M12 B+** (vCard completa → URL del `.vcf`) | **Funciona**: abre directamente la app Contactos con la vCard del primer registro. | Modelo, Android/One UI, interacciones, campos (10/10?), 3 intentos |
 
+| **iPhone** | **M05.1** (redirección JS → `.vcf`) | **Igual que M01**: se abre la página un instante y pasa directamente a la vista de guardar el contacto. | Modelo, iOS, interacciones, campos |
+| **Samsung** | M01, M02, M03.1, M04, M05.1 | **Todos con pasos similares**: se abre la página → presionar descargar → abrir la descarga → importar → guardado. La descarga automática (M03.1) no ahorró pasos en la práctica. | Modelo, Android/One UI, navegador, número exacto de toques |
+
 **Hosting usado:** _(GitHub Pages / local / Netlify…)_ · **Commit del laboratorio:** _(hash)_
 
 | Fecha | Tester | Prueba | Variante | Teléfono | SO | Navegador | Tarjeta | Lectura NFC | Descarga auto | Contactos | Interacciones | Campos OK | Resultado | Errores / observaciones |

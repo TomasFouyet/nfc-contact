@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url);
 const P = require(join(ROOT, 'panel/panel-core.js'));
 const C = require(join(ROOT, 'lab/assets/contact.js'));
 const cfg = { publicBase: 'https://tomasfouyet.github.io/nfc-contact/c/' };
+const cfgHybrid = { ...cfg, cardMode: 'hybrid' };
 
 function person(extra = {}) {
   return Object.assign(P.emptyPerson(), {
@@ -50,16 +51,46 @@ test('omite campos vacíos y los desmarcados del chip', () => {
   assert.deepEqual(C.validateVCard(chip), []);
 });
 
-test('URL pública y tamaño del chip (M12 B+)', () => {
+test('modo por defecto: tarjeta solo con URL a la página', () => {
   const p = person();
-  assert.equal(P.publicUrl(p, cfg), cfg.publicBase + p.id + '.vcf');
-  assert.equal(P.publicUrl(p, { publicBase: 'https://x.cl/c' }), 'https://x.cl/c/' + p.id + '.vcf');
-  const size = P.chipSize(p, cfg);
+  assert.equal(P.mode(cfg), 'url');
+  assert.equal(P.publicUrl(p, cfg), cfg.publicBase + p.id + '/');
+  assert.equal(P.publicUrl(p, { publicBase: 'https://x.cl/c' }), 'https://x.cl/c/' + p.id + '/');
+  assert.equal(P.vcfUrl(p, cfg), cfg.publicBase + p.id + '.vcf');
+  assert.equal(P.chipRecords(p, cfg).length, 1);
+  assert.ok(P.chipSize(p, cfg) < 144, 'cabe incluso en NTAG213');
+  assert.equal(P.idFromUrl(P.publicUrl(p, cfg)), p.id);
+  assert.equal(P.idFromUrl(P.vcfUrl(p, cfg)), p.id);
+  // Cambiar datos NO deja la tarjeta desactualizada (se actualiza a distancia).
+  const h = P.chipHash(p, cfg); p.title = 'Otro cargo';
+  assert.equal(P.chipHash(p, cfg), h);
+});
+
+test('modo híbrido (M12 B+): vCard + URL del .vcf', () => {
+  const p = person();
+  assert.equal(P.publicUrl(p, cfgHybrid), cfg.publicBase + p.id + '.vcf');
+  assert.equal(P.chipRecords(p, cfgHybrid).length, 2);
+  const size = P.chipSize(p, cfgHybrid);
   assert.ok(size <= 504, 'datos de ejemplo caben: ' + size);
   p.chip.note = false;
-  assert.ok(P.chipSize(p, cfg) < size);
-  assert.equal(P.idFromUrl(P.publicUrl(p, cfg)), p.id);
-  assert.equal(P.idFromUrl('https://x.cl/otra/cosa'), null);
+  assert.ok(P.chipSize(p, cfgHybrid) < size);
+  const h = P.chipHash(p, cfgHybrid); p.title = 'Otro cargo';
+  assert.notEqual(P.chipHash(p, cfgHybrid), h, 'en híbrido un cambio exige regrabar');
+});
+
+test('página pública: datos, rutas relativas y sin inyección', () => {
+  const p = person({ org: 'ACME </script><script>alert(1)</script>' });
+  const html = P.pageHtml(p);
+  assert.match(html, /<title>Valentina Rojas Ibáñez<\/title>/);
+  assert.match(html, new RegExp('href="\\.\\./' + p.id + '\\.vcf"'));
+  assert.match(html, /src="\.\.\/assets\/card\.js"/);
+  assert.equal((html.match(/<\/script>/g) || []).length, 2, 'el contenido no cierra el script');
+  assert.ok(!html.includes('<script>alert'));
+  const data = JSON.parse(html.match(/window\.CARD = (.*);<\/script>/)[1]);
+  assert.equal(data.vcf, '../' + p.id + '.vcf');
+  assert.equal(data.fileName, 'Valentina-Rojas-Ibanez.vcf');
+  assert.match(P.inactivePageHtml(), /no disponible/);
+  assert.equal(P.idFromUrl('https://x.cl/otra/cosa.html'), null);
 });
 
 test('validación', () => {
@@ -68,24 +99,25 @@ test('validación', () => {
   assert.ok(P.validate(person({ email: 'malo' }), cfg).some((e) => e.includes('correo')));
   assert.ok(P.validate(person({ url: 'example.com' }), cfg).some((e) => e.includes('https')));
   const big = person({ note: 'x'.repeat(300) });
-  assert.ok(P.validate(big, cfg).some((e) => e.includes('No cabe')));
+  assert.ok(!P.validate(big, cfg).some((e) => e.includes('No cabe')), 'en modo URL el tamaño no importa');
+  assert.ok(P.validate(big, cfgHybrid).some((e) => e.includes('No cabe')));
   big.chip.note = false;
-  assert.ok(!P.validate(big, cfg).some((e) => e.includes('No cabe')));
+  assert.ok(!P.validate(big, cfgHybrid).some((e) => e.includes('No cabe')));
 });
 
 test('detecta tarjetas desactualizadas y publicación pendiente', () => {
   const p = person();
-  p.cards = [{ id: 'a', hash: P.chipHash(p, cfg) }];
-  p.published = { hash: P.vcfHash(p) };
-  let s = P.state(p, cfg);
+  p.cards = [{ id: 'a', hash: P.chipHash(p, cfgHybrid) }];
+  p.published = { hash: P.publishHash(p) };
+  let s = P.state(p, cfgHybrid);
   assert.equal(s.outdatedCards, 0);
   assert.equal(s.published, true);
   p.title = 'Gerenta General';
-  s = P.state(p, cfg);
+  s = P.state(p, cfgHybrid);
   assert.equal(s.outdatedCards, 1);
-  assert.equal(s.published, false);
+  assert.equal(s.published, false, 'hay que volver a publicar');
   p.cards[0].retired = true;
-  assert.equal(P.state(p, cfg).outdatedCards, 0);
+  assert.equal(P.state(p, cfgHybrid).outdatedCards, 0);
 });
 
 test('diff para el historial', () => {

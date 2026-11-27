@@ -1,45 +1,47 @@
 # Panel de tarjetas
 
-`/panel/` sirve para registrar a cada persona, publicar su contacto y grabar
-su tarjeta con el método validado en el piloto (**M12 B+**):
+`/panel/` sirve para registrar a cada persona, publicar su página de contacto
+y grabar su tarjeta.
+
+## Tipo de tarjeta (Configuración → Tipo de tarjeta)
+
+**Solo URL (por defecto, D17)**: la tarjeta lleva una URL a la página de la persona.
 
 ```
-Tarjeta NTAG215
- ├─ Registro 1: vCard (text/vcard)  → Samsung/Android abre Contactos directamente
- └─ Registro 2: URL …/c/<id>.vcf     → iPhone abre la ficha del contacto
+Tarjeta NTAG215:  …/c/<id>/
+                      │
+        ┌─────────────┴──────────────┐
+     iPhone                     Android / Samsung
+  redirige a <id>.vcf        ficha + "Guardar contacto" (descarga
+  → guardar contacto         <Nombre>.vcf) + ayuda para importar
 ```
 
-> El panel va más allá del alcance original de la Fase 1 (no tiene
-> autenticación ni base de datos de servidor). Es una herramienta interna
-> mínima para el piloto con personas reales. Ver `DECISIONS.md` D15 y D16.
+- **Todo se cambia a distancia:** editar → Guardar → Publicar. Las tarjetas
+  entregadas muestran los datos nuevos sin tocarlas.
+- **El comportamiento también se cambia a distancia:** `c/assets/card.js` es
+  común a todas las páginas (variable `CONFIG`). Para aplicar un cambio, usar
+  Configuración → *Actualizar recursos comunes*.
+- Desactivar o eliminar a una persona deja su página con el aviso "Contacto no
+  disponible".
 
-## Qué se actualiza solo y qué no
-
-| Cambio de datos | iPhone (URL → `.vcf`) | Samsung (vCard en el chip) |
-|---|---|---|
-| Editar y **Publicar** | Se actualiza solo, sin tocar la tarjeta | **No**: hay que **regrabar** la tarjeta |
-| Desactivar a la persona | El `.vcf` se retira y deja de funcionar | La tarjeta sigue entregando la vCard grabada: hay que recuperarla o regrabarla |
-
-El panel marca cada tarjeta como **Al día** o **Regrabar**, comparando lo que
-se grabó con los datos actuales.
+**Híbrida vCard + URL (M12 B+)**: Android abre Contactos directamente, pero
+cada cambio de datos exige **regrabar la tarjeta**. El panel marca qué
+tarjetas quedaron por regrabar.
 
 ## Flujo de trabajo
 
 1. **+ Nueva persona** → completar los datos → **Guardar cambios**.
-2. Revisar la barra **Ocupa X de 504 bytes**. Si queda en rojo o en amarillo,
-   desmarcar en *Contenido de la tarjeta* los campos menos importantes para
-   el chip (primero la Nota y después la Dirección). El `.vcf` publicado para
-   iPhone siempre lleva todos los campos.
-3. **Publicar contacto (.vcf)**:
-   - Con sincronización: se sube solo a GitHub.
-   - Sin sincronización: se descarga `<id>.vcf` y hay que subirlo a mano a la
-     carpeta pública (en GitHub: *Add file → Upload files*, carpeta `c/`).
-4. **Grabar tarjeta** (en un Android con **Chrome**): acercar la tarjeta. Luego
-   alejarla y volver a acercarla para **verificarla** y registrar su n.º de serie.
-5. Probar la tarjeta en un iPhone y en un Samsung.
-
-**Para modificar a alguien:** abrir su ficha → editar → **Guardar** →
-**Publicar** → **Grabar tarjeta** (sobre la misma tarjeta física).
+2. **Publicar**:
+   - Con sincronización: se suben `<id>.vcf` y `<id>/index.html` (y, la primera
+     vez, `assets/card.js` y `assets/card.css`).
+   - Sin sincronización: se descargan los dos archivos y hay que subirlos a
+     mano. En GitHub: *Add file → Create new file*, escribir la ruta
+     (`c/<id>/index.html`) y pegar el contenido.
+3. **Grabar tarjeta** (Android con **Chrome**). Después, alejarla y volver a
+   acercarla para verificarla y registrar su n.º de serie.
+4. Probar la tarjeta en un iPhone y en un Samsung.
+5. **Bloquear la tarjeta**: pendiente (D17). No bloquear hasta tener el
+   dominio definitivo.
 
 **Leer tarjeta** identifica de quién es una tarjeta y si está al día.
 
@@ -59,8 +61,8 @@ para siempre. Por eso:
 
 - El panel **no sube el registro** a un repositorio público, salvo que se
   marque la casilla de confirmación.
-- Los `.vcf` de la carpeta `c/` son públicos por naturaleza (el iPhone necesita
-  descargarlos sin contraseña). En un repositorio público, además, se pueden
+- Las páginas y los `.vcf` de la carpeta `c/` son públicos por naturaleza
+  (quien lee la tarjeta los abre sin contraseña). En un repositorio público, además, se pueden
   **listar todos** desde GitHub.
 
 ### Configuración recomendada para datos reales
@@ -88,8 +90,8 @@ ejemplo `https://c.miempresa.cl/`) apuntando al hosting elegido.
 
 ### Opción rápida para una primera tarjeta real
 
-Modo local, publicando a mano el `.vcf` en la carpeta `c/` del repositorio
-actual (GitHub Pages ya sirve la rama del piloto). Funciona, pero **los datos
+Modo local, publicando a mano el `.vcf` y la página en la carpeta `c/` del
+repositorio actual (GitHub Pages ya sirve la rama del piloto). Funciona, pero **los datos
 de esa persona quedan públicos**: hacerlo solo con su consentimiento.
 
 ## Privacidad
@@ -108,7 +110,8 @@ de esa persona quedan públicos**: hacerlo solo con su consentimiento.
 - `npm test`: núcleo del panel (vCard, tamaño del chip, tarjetas
   desactualizadas, importar/exportar).
 - `node tests/e2e/panel.mjs`: flujo completo en Chromium con la API de GitHub
-  **simulada**.
+  **simulada**, y la página pública con User-Agent de iPhone (redirige al
+  `.vcf`) y de Android (ficha y descarga con nombre legible).
 - **No probado de forma automática:** grabar y leer tarjetas (Web NFC no existe
   en Chromium de escritorio) ni la API real de GitHub. Hay que validarlo con
   una primera tarjeta real.
