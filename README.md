@@ -42,6 +42,14 @@ Herramientas: `lab/grabador/` (grabar y leer tarjetas con Web NFC) y
 **Todos los datos son ficticios.** El comportamiento esperado de cada método
 es una hipótesis hasta que se valide con pruebas físicas.
 
+## Panel de tarjetas
+
+[`panel/`](panel/) registra a las personas, publica su `.vcf` y graba sus
+tarjetas con el método M12 B+ (vCard en el chip + URL del `.vcf`). Incluye un
+historial de cambios y detecta las tarjetas que hay que regrabar. Ver
+[docs/PANEL.md](docs/PANEL.md), en especial la sección sobre **dónde se
+guardan los datos**: este repositorio es público.
+
 ## Documentación
 
 - [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md): producto y objetivo de la fase.
@@ -49,6 +57,7 @@ es una hipótesis hasta que se valide con pruebas físicas.
 - [docs/TEST_PLAN.md](docs/TEST_PLAN.md): metodología de las pruebas físicas.
 - [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md): resultados (automatizados y físicos).
 - [docs/DECISIONS.md](docs/DECISIONS.md): decisiones técnicas.
+- [docs/PANEL.md](docs/PANEL.md): uso del panel de tarjetas y privacidad de los datos.
 
 ## Uso local
 
@@ -66,6 +75,8 @@ tools/check-headers.sh https://tomasfouyet.github.io/nfc-contact   # cabeceras r
 
 ```
 index.html, tomas.vcf    Prototipo original (no modificar)
+panel/                   Panel de tarjetas (personas, publicación, grabación)
+c/                       Contactos publicados por el panel (<id>.vcf)
 lab/                     Laboratorio estático (GitHub Pages compatible)
   assets/                contact.js (datos + generadores), methods.js, lab.js, lab.css
   vcards/, http/         Archivos vCard generados

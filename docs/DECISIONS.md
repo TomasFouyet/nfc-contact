@@ -161,3 +161,26 @@ La decisión final se registrará aquí como **D14** con los datos de
   sin el registro completo del protocolo.
 - **Pendiente para aceptar:** registrar modelo/versión, interacciones y campos; 3/3 intentos en
   2 modelos por marca, conteo de interacciones y 10/10 campos.
+
+## D15 · Panel de tarjetas — Aceptada (pedido del equipo, 2026-11-27)
+
+- **Contexto:** con M12 B+ funcionando en iPhone y Samsung, el equipo necesita
+  registrar a personas reales, configurar sus tarjetas y modificarlas.
+- **Decisión:** página estática `/panel/` sin servidor ni login. Reutiliza el
+  generador del laboratorio. Persistencia local y, opcionalmente, en un
+  repositorio de GitHub mediante la API con un token fine-grained. Detecta
+  tarjetas desactualizadas comparando un hash del contenido grabado.
+- **Alcance:** sale del "fuera de alcance" original (paneles, bases de
+  datos), por pedido explícito. Se mantiene mínimo: no hay autenticación,
+  roles, pagos ni multiempresa.
+- **Detalle:** `docs/PANEL.md`.
+
+## D16 · Datos personales reales fuera del repositorio público — Propuesta
+
+- **Hecho:** `TomasFouyet/nfc-contact` es público.
+- **Decisión:** el panel no sube el registro a un repositorio público sin una
+  confirmación explícita. La configuración recomendada es un repositorio
+  privado con `public/c/` publicado en Cloudflare Pages o Netlify.
+- **Pendiente (equipo):** elegir el hosting y el **dominio estable** para la
+  URL de las tarjetas antes de producirlas en cantidad. Cambiarlo obliga a
+  regrabar todas las tarjetas.

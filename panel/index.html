@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel de tarjetas NFC</title>
+<link rel="stylesheet" href="../lab/assets/lab.css">
+<style>
+  main { max-width: 1180px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+  .toolbar .btn { width: auto; }
+  .toolbar input[type=search] { flex: 1; min-width: 180px; font: inherit; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .plist { list-style: none; padding: 0; margin: 0; }
+  .plist li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; border-radius: 10px; }
+  .plist li:hover, .plist li.sel { background: var(--surface-2); }
+  .plist .nm { font-weight: 600; }
+  .plist .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+  .plist .sub { grid-column: 1 / -1; color: var(--muted); font-size: .85rem; }
+  .editor { display: grid; gap: 16px; }
+  @media (min-width: 900px) { .editor { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } .sticky { position: sticky; top: 12px; } }
+  .meter { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--border); }
+  .meter > div { height: 100%; background: var(--ok); }
+  .meter.warn > div { background: var(--warn); }
+  .meter.err > div { background: var(--err); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .chips label { font-weight: 400; display: flex; gap: 6px; align-items: center; }
+  .hist { font-size: .85rem; max-height: 220px; overflow: auto; }
+  .hist li { margin: 4px 0; }
+  .empty { color: var(--muted); padding: 20px 4px; text-align: center; }
+  .danger { color: var(--err); }
+  #toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 92vw; z-index: 10; }
+</style>
+</head>
+<body>
+<main>
+  <div class="topbar"><a href="../lab/">← Laboratorio</a><span class="badge">Panel · piloto</span></div>
+  <h1>Tarjetas NFC</h1>
+  <p class="muted">Registra a cada persona, publica su contacto y graba su tarjeta (vCard completa en el chip + URL del <code>.vcf</code>, método M12 B+).</p>
+  <div id="storage"></div>
+
+  <div class="toolbar">
+    <button class="btn primary" type="button" id="btnNew">+ Nueva persona</button>
+    <button class="btn" type="button" id="btnScan">Leer tarjeta</button>
+    <button class="btn" type="button" id="btnSettings">Configuración</button>
+    <input type="search" id="q" placeholder="Buscar por nombre, empresa, correo…" aria-label="Buscar">
+  </div>
+
+  <section class="panel" id="settings" hidden>
+    <h2>Configuración</h2>
+    <form onsubmit="return false">
+      <div class="field">
+        <label for="cfgBase">URL pública de la carpeta de contactos (.vcf)</label>
+        <input type="text" id="cfgBase" placeholder="https://tomasfouyet.github.io/nfc-contact/c/">
+        <p class="muted">Cada persona queda en <code>&lt;esta URL&gt;&lt;id&gt;.vcf</code>. Esta URL se graba en la tarjeta: después no se puede cambiar sin regrabar todas las tarjetas. Conviene usar un dominio propio estable.</p>
+      </div>
+      <h3>Sincronización con GitHub (opcional)</h3>
+      <p class="muted">Sin sincronización, los datos viven solo en este navegador (usa Exportar/Importar para pasarlos a otro dispositivo). Con sincronización, el registro y los <code>.vcf</code> se guardan en un repositorio, con historial de cambios.</p>
+      <div class="row2">
+        <div class="field"><label for="cfgOwner">Usuario/organización</label><input type="text" id="cfgOwner" placeholder="TomasFouyet"></div>
+        <div class="field"><label for="cfgRepo">Repositorio</label><input type="text" id="cfgRepo" placeholder="nfc-contact-datos"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="cfgBranch">Rama</label><input type="text" id="cfgBranch" placeholder="main"></div>
+        <div class="field"><label for="cfgDir">Carpeta de los .vcf en el repositorio</label><input type="text" id="cfgDir" placeholder="c/"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="cfgReg">Archivo del registro en el repositorio</label><input type="text" id="cfgReg" placeholder="registro/personas.json"></div>
+        <div class="field"><label for="cfgToken">Token de GitHub (fine-grained, solo este repositorio, Contents: read/write)</label><input type="password" id="cfgToken" autocomplete="off"></div>
+      </div>
+      <label class="muted" style="font-weight:400"><input type="checkbox" id="cfgPublicOk"> Entiendo que si el repositorio es público, el registro y los contactos quedarán visibles para cualquiera.</label>
+      <div class="btn-grid two" style="margin-top:10px">
+        <button class="btn primary" type="button" id="cfgSave">Guardar configuración</button>
+        <button class="btn" type="button" id="cfgTest">Probar conexión</button>
+      </div>
+      <p class="notice info" id="cfgStatus" hidden></p>
+      <div class="btn-grid two" style="margin-top:10px">
+        <button class="btn" type="button" id="cfgPull">Cargar registro desde GitHub</button>
+        <button class="btn" type="button" id="cfgForget">Olvidar token en este dispositivo</button>
+      </div>
+      <h3>Respaldo</h3>
+      <div class="btn-grid two">
+        <button class="btn" type="button" id="btnExport">Exportar registro (.json)</button>
+        <label class="btn" for="fileImport" style="margin:0">Importar registro (.json)</label>
+      </div>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </form>
+  </section>
+
+  <section class="panel" id="scanBox" hidden>
+    <h2>Lectura de tarjeta</h2>
+    <pre id="scanOut" class="mono" style="white-space:pre-wrap;font-size:.8rem"></pre>
+    <div id="scanActions" class="btn-grid two"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Personas (<span id="count">0</span>)</h2>
+    <ul class="plist" id="list"></ul>
+  </section>
+
+  <section id="editorWrap" hidden>
+    <div class="editor">
+      <div class="panel">
+        <div class="topbar"><span class="badge" id="edId"></span><span class="badge" id="edStatus"></span></div>
+        <h2 id="edTitle">Persona</h2>
+        <form id="form" onsubmit="return false"></form>
+        <p class="notice err" id="edErrors" hidden></p>
+        <div class="btn-grid two">
+          <button class="btn primary" type="button" id="btnSave">Guardar cambios</button>
+          <button class="btn" type="button" id="btnCancel">Cerrar sin guardar</button>
+        </div>
+      </div>
+
+      <div class="sticky">
+        <div id="preview"></div>
+
+        <section class="panel">
+          <h2>Contenido de la tarjeta</h2>
+          <p class="muted">Campos incluidos en la vCard del chip (lo que ve Samsung). El <code>.vcf</code> publicado (iPhone) siempre lleva todos.</p>
+          <div class="chips" id="chips"></div>
+          <p style="margin-top:10px"><span id="sizeTxt"></span></p>
+          <div class="meter" id="meter"><div></div></div>
+          <div class="url-label">URL grabada en la tarjeta (iPhone)</div>
+          <div class="url-row"><code id="pubUrl"></code><button class="btn small" type="button" id="btnCopyUrl">Copiar</button></div>
+          <p id="pubState" class="muted"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Acciones</h2>
+          <div class="btn-grid">
+            <button class="btn primary" type="button" id="btnPublish">Publicar contacto (.vcf)</button>
+            <button class="btn primary" type="button" id="btnWrite">Grabar tarjeta</button>
+            <button class="btn" type="button" id="btnDownload">Descargar .vcf</button>
+            <button class="btn" type="button" id="btnToggle">Desactivar persona</button>
+            <button class="btn danger" type="button" id="btnDelete">Eliminar persona</button>
+          </div>
+          <p class="notice info" id="actStatus" hidden></p>
+        </section>
+
+        <section class="panel">
+          <h2>Tarjetas grabadas</h2>
+          <ul class="plist" id="cards"></ul>
+        </section>
+
+        <section class="panel">
+          <h2>Historial</h2>
+          <ul class="hist" id="history"></ul>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+<p class="notice ok" id="toast" hidden></p>
+<script src="../lab/assets/contact.js"></script>
+<script src="panel-core.js"></script>
+<script src="panel.js"></script>
+</body>
+</html>

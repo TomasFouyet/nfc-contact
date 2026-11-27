@@ -113,15 +113,25 @@
   // opts.version: '2.1' | '3.0' | '4.0'   (por defecto '3.0')
   // opts.eol:     '\r\n' | '\n'           (por defecto CRLF, exigido por RFC)
   // opts.compact: true => sólo campos esenciales (para grabar en el chip)
+  // opts.omit:    campos a excluir: org, title, cell, work, email, url, adr, note
+  // Los campos vacíos se omiten siempre.
   // ---------------------------------------------------------------------
+  var COMPACT_OMIT = ['work', 'url', 'adr', 'note'];
   function buildVCard(c, opts) {
     c = c || CONTACT;
     opts = opts || {};
     var version = opts.version || '3.0';
     var eol = opts.eol || CRLF;
-    var compact = !!opts.compact;
-    var props = []; // [nombreYParams, valor, yaEscapado]
-    var a = c.adr;
+    var omit = (opts.omit || []).concat(opts.compact ? COMPACT_OMIT : []);
+    var a = c.adr || {};
+    var adrParts = ['', '', a.street, a.locality, a.region, a.postal, a.country].map(function (x) { return x || ''; });
+    var hasAdr = adrParts.join('') !== '';
+    function has(key) {
+      if (omit.indexOf(key) >= 0) return false;
+      if (key === 'adr') return hasAdr;
+      return !!(c[key] && String(c[key]).trim());
+    }
+    var props = [];
 
     if (version === '2.1') {
       var p21 = function (name, value) {
@@ -133,44 +143,41 @@
         }
       };
       // N se arma aparte para no escapar sus ';' estructurales
-      var nVal = [c.familyName, c.givenName, '', '', ''].map(escapeText21).join(';');
+      var nVal = [c.familyName || '', c.givenName || '', '', '', ''].map(escapeText21).join(';');
       if (isAscii(nVal)) props.push('N:' + nVal);
       else { var hN = 'N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:'; props.push({ qp: true, line: hN + quotedPrintable(nVal, hN.length, eol) }); }
       p21('FN', c.fullName);
-      p21('ORG', c.org);
-      p21('TITLE', c.title);
-      props.push('TEL;CELL;VOICE:' + c.cell);
-      if (!compact) props.push('TEL;WORK;VOICE:' + c.work);
-      props.push('EMAIL;INTERNET;WORK:' + c.email);
-      if (!compact) {
-        props.push('URL:' + c.url);
-        var adr21 = ['', '', a.street, a.locality, a.region, a.postal, a.country].map(escapeText21).join(';');
+      if (has('org')) p21('ORG', c.org);
+      if (has('title')) p21('TITLE', c.title);
+      if (has('cell')) props.push('TEL;CELL;VOICE:' + c.cell);
+      if (has('work')) props.push('TEL;WORK;VOICE:' + c.work);
+      if (has('email')) props.push('EMAIL;INTERNET;WORK:' + c.email);
+      if (has('url')) props.push('URL:' + c.url);
+      if (has('adr')) {
+        var adr21 = adrParts.map(escapeText21).join(';');
         var hA = 'ADR;WORK;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:';
         props.push(isAscii(adr21) ? 'ADR;WORK:' + adr21 : { qp: true, line: hA + quotedPrintable(adr21, hA.length, eol) });
-        p21('NOTE', c.note);
       }
+      if (has('note')) p21('NOTE', c.note);
     } else {
       var v4 = version === '4.0';
-      props.push('N:' + [c.familyName, c.givenName, '', '', ''].map(escapeText).join(';'));
+      props.push('N:' + [c.familyName || '', c.givenName || '', '', '', ''].map(escapeText).join(';'));
       props.push('FN:' + escapeText(c.fullName));
       if (v4) props.push('KIND:individual');
-      props.push('ORG:' + escapeText(c.org));
-      props.push('TITLE:' + escapeText(c.title));
+      if (has('org')) props.push('ORG:' + escapeText(c.org));
+      if (has('title')) props.push('TITLE:' + escapeText(c.title));
       if (v4) {
-        props.push('TEL;VALUE=uri;TYPE="cell,voice":tel:' + c.cell);
-        if (!compact) props.push('TEL;VALUE=uri;TYPE="work,voice":tel:' + c.work);
-        props.push('EMAIL;TYPE=work:' + c.email);
+        if (has('cell')) props.push('TEL;VALUE=uri;TYPE="cell,voice":tel:' + c.cell);
+        if (has('work')) props.push('TEL;VALUE=uri;TYPE="work,voice":tel:' + c.work);
+        if (has('email')) props.push('EMAIL;TYPE=work:' + c.email);
       } else {
-        props.push('TEL;TYPE=CELL,VOICE:' + c.cell);
-        if (!compact) props.push('TEL;TYPE=WORK,VOICE:' + c.work);
-        props.push('EMAIL;TYPE=INTERNET,WORK:' + c.email);
+        if (has('cell')) props.push('TEL;TYPE=CELL,VOICE:' + c.cell);
+        if (has('work')) props.push('TEL;TYPE=WORK,VOICE:' + c.work);
+        if (has('email')) props.push('EMAIL;TYPE=INTERNET,WORK:' + c.email);
       }
-      if (!compact) {
-        props.push('URL:' + c.url);
-        props.push('ADR;TYPE=' + (v4 ? 'work' : 'WORK') + ':' +
-          ['', '', a.street, a.locality, a.region, a.postal, a.country].map(escapeText).join(';'));
-        props.push('NOTE:' + escapeText(c.note));
-      }
+      if (has('url')) props.push('URL:' + c.url);
+      if (has('adr')) props.push('ADR;TYPE=' + (v4 ? 'work' : 'WORK') + ':' + adrParts.map(escapeText).join(';'));
+      if (has('note')) props.push('NOTE:' + escapeText(c.note));
     }
 
     var lines = ['BEGIN:VCARD', 'VERSION:' + version];
