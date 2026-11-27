@@ -150,11 +150,11 @@ La decisión final se registrará aquí como **D14** con los datos de
 ## D14 · Método recomendado — Candidato preliminar (2026-11-27)
 
 - **Observación física preliminar** (ver `TEST_RESULTS.md` §4.0): en Samsung, M12 B abre directamente
-  Contactos; en iPhone, el equipo prefiere M02 porque abre el contacto sin pasar por descargas.
+  Contactos; en iPhone, el equipo prefiere M01 (`.vcf` directo) porque abre el contacto sin pasar por descargas (corregido: inicialmente se informó M02).
 - **Candidato:** una sola tarjeta **M12 B+** = registro 1 vCard **completa** (MIME `text/vcard`) +
-  registro 2 URL de la **ficha M02**. Hipótesis: Samsung usa el primer registro (Contactos) e iPhone usa el
-  primer registro URI (ficha M02 → "Guardar contacto").
-- **Tamaño:** ~478 de 504 bytes en NTAG215 con los datos ficticios. Con nombres o direcciones reales más
+  registro 2 URL del **`.vcf` directo** (`lab/vcards/contacto-v30.vcf`). Hipótesis: Samsung usa el primer registro
+  (Contactos) e iPhone usa el primer registro URI (notificación → ficha del contacto, como en M01).
+- **Tamaño:** ~491 de 504 bytes en NTAG215 con los datos ficticios (margen de solo 13 bytes). Con nombres o direcciones reales más
   largos podría no caber: en producción habrá que limitar campos o usar NTAG216 (888 bytes).
 - **Pendiente para aceptar:** confirmar en iPhone que se abre la URL del segundo registro, 3/3 intentos en
   2 modelos por marca, conteo de interacciones y 10/10 campos.

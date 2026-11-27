@@ -56,11 +56,11 @@
   M.VARIANTS.forEach(function (v) { opt('url:' + v.path, 'M09 ' + v.id + ' · ' + v.label); });
   opt('ndef:A', 'M12 A · Solo vCard compacta (MIME text/vcard)');
   opt('ndef:A+', 'M12 A+ · Solo vCard completa');
-  opt('ndef:B+', 'M12 B+ · vCard completa → URL (recomendada: Samsung + iPhone)');
+  opt('ndef:B+', 'M12 B+ · vCard completa → URL del .vcf (recomendada: Samsung + iPhone)');
   opt('ndef:B', 'M12 B · vCard compacta → URL');
   opt('ndef:C', 'M12 C · URL → vCard compacta');
   var hyb = document.getElementById('hyb');
-  hyb.value = Lab.abs('m02-boton/'); // ficha M02: la preferida en iPhone
+  hyb.value = Lab.abs(M.VCF); // .vcf directo (M01): el preferido en iPhone
   var p = Lab.qs('p'); if (p) sel.value = p;
 
   function records() {

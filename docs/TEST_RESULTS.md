@@ -97,7 +97,7 @@ interacciones, campos importados y número de intentos. No sirven aún para la d
 | Plataforma | Método | Observación | Falta registrar |
 |---|---|---|---|
 | Samsung | M12 B (vCard compacta → URL) | **Abre directamente la app Contactos**, sin navegador ni descarga. | Modelo, Android/One UI, interacciones, campos (la vCard compacta lleva 5 de 10), intentos |
-| iPhone | M02 (ficha + botón) | **Abre el contacto directamente** (sin descargar el archivo ni pasar por Descargas). El equipo lo prefiere en iPhone. | Modelo, iOS, interacciones, campos, intentos; comparación con M01 |
+| iPhone | M01 (`.vcf` directo) | **Abre el contacto directamente** (sin descargar el archivo ni pasar por Descargas). El equipo lo prefiere en iPhone. _(Corrección 2026-11-27: inicialmente se informó como M02.)_ | Modelo, iOS, interacciones, campos, intentos |
 | iPhone | M12 B | _Sin dato_: ¿abrió la URL del segundo registro? | Todo |
 
 **Hosting usado:** _(GitHub Pages / local / Netlify…)_ · **Commit del laboratorio:** _(hash)_
