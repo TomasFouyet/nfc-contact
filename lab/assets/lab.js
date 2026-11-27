@@ -241,6 +241,7 @@
     if (!top) return;
     top.appendChild(el('div', { 'class': 'topbar' }, [
       el('a', { href: ROOT, text: '← Laboratorio' }),
+      el('span', { 'class': 'badge', text: 'Opción ' + m.rank }),
       el('span', { 'class': 'badge', text: m.id }),
       el('span', { 'class': 'badge', text: m.group })
     ]));
@@ -259,16 +260,7 @@
     m.steps.forEach(function (s) { steps.appendChild(el('li', { text: s })); });
     bottom.appendChild(el('section', { 'class': 'panel' }, [el('h2', { text: 'Cómo probar' }), steps]));
 
-    var dl = el('dl', { 'class': 'expect' });
-    [['iPhone · Safari', m.expected.ios], ['Samsung · Samsung Internet', m.expected.samsung], ['Android · Chrome', m.expected.chrome]].forEach(function (p) {
-      dl.appendChild(el('dt', { text: p[0] }));
-      dl.appendChild(el('dd', { text: p[1] }));
-    });
-    bottom.appendChild(el('section', { 'class': 'panel' }, [
-      el('h2', { text: 'Comportamiento esperado' }),
-      el('p', { 'class': 'notice warn', text: 'Hipótesis basada en documentación. NO es un resultado validado: confirmar con pruebas físicas.' }),
-      dl
-    ]));
+    bottom.appendChild(conditionsPanel(m));
 
     bottom.appendChild(el('section', { 'class': 'panel' }, [
       el('h2', { text: 'Descarga manual (alternativa)' }),
@@ -281,6 +273,26 @@
 
     bottom.appendChild(diagPanel());
     bottom.appendChild(el('p', null, [el('a', { 'class': 'btn', href: abs('registro/?m=' + encodeURIComponent(m.id)), text: 'Registrar resultado de esta prueba' })]));
+  }
+
+  // Tabla de condiciones de una opción (actualización, iPhone, Samsung…).
+  var COND_LABELS = [['estado', 'Estado'], ['update', 'Actualización'], ['iphone', 'iPhone'], ['samsung', 'Samsung / Android'], ['requisito', 'Requisitos']];
+  function conditionsTable(m) {
+    var t = el('table');
+    COND_LABELS.forEach(function (k) {
+      var v = m.conditions[k[0]];
+      var td = el('td', { text: v });
+      if (k[0] === 'estado') td = el('td', null, [el('span', { 'class': 'badge ' + (/^Por evaluar/.test(v) ? 'warn' : /descartad/i.test(v) ? '' : 'ok'), text: v })]);
+      t.appendChild(el('tr', null, [el('th', { text: k[1] }), td]));
+    });
+    return el('div', { 'class': 'table-scroll' }, [t]);
+  }
+  function conditionsPanel(m) {
+    return el('section', { 'class': 'panel' }, [
+      el('h2', { text: 'Condiciones' }),
+      conditionsTable(m),
+      el('p', { 'class': 'muted', text: '"Validado" = observado en pruebas físicas del equipo (docs/TEST_RESULTS.md). "Por evaluar" = hipótesis sin prueba física.' })
+    ]);
   }
 
   function diagPanel() {
@@ -345,7 +357,7 @@
 
   window.Lab = {
     ROOT: ROOT, abs: abs, qs: qs, el: el, env: ENV, log: log, card: card, clickLink: clickLink,
-    headers: headers, headersMatch: headersMatch, copy: copy, urlRow: urlRow, diagPanel: diagPanel,
+    headers: headers, headersMatch: headersMatch, copy: copy, urlRow: urlRow, diagPanel: diagPanel, conditionsTable: conditionsTable,
     clientHints: clientHints, escapeHtml: escapeHtml,
     vcfUrl: function (path) { return abs(path || M.VCF); },
     vcfText: function (opts) { return C.buildVCard(C.CONTACT, opts); }

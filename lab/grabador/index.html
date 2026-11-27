@@ -22,7 +22,7 @@
         <select id="preset"></select>
       </div>
       <div class="field" id="hybWrap">
-        <label for="hyb">URL del registro URI (para URL / híbridos)</label>
+        <label for="hyb">URL del registro 2 (opción híbrida)</label>
         <input type="text" id="hyb">
       </div>
     </form>
@@ -49,28 +49,24 @@
   support.className = 'notice ' + (ok ? 'ok' : 'err');
   support.textContent = ok ? 'Web NFC disponible en este navegador.' : 'Web NFC NO disponible aquí (' + Lab.env.browser + ', ' + Lab.env.os + '). Usa Chrome para Android o una app de grabación.';
 
-  // Opciones: todas las URLs de prueba + variantes NDEF
+  // Opciones: solo las 5 en evaluación (D18), en orden de preferencia.
   var sel = document.getElementById('preset');
   function opt(value, label) { sel.appendChild(Lab.el('option', { value: value, text: label })); }
-  M.METHODS.forEach(function (m) { m.nfc.forEach(function (n) { if (m.id !== 'M12') opt('url:' + n.path, m.id + ' · ' + n.label); }); });
-  M.VARIANTS.forEach(function (v) { opt('url:' + v.path, 'M09 ' + v.id + ' · ' + v.label); });
-  opt('ndef:A', 'M12 A · Solo vCard compacta (MIME text/vcard)');
-  opt('ndef:A+', 'M12 A+ · Solo vCard completa');
-  opt('ndef:B+', 'M12 B+ · vCard completa → URL del .vcf (recomendada: Samsung + iPhone)');
-  opt('ndef:B', 'M12 B · vCard compacta → URL');
-  opt('ndef:C', 'M12 C · URL → vCard compacta');
+  M.METHODS.slice().sort(function (a, b) { return a.rank - b.rank; }).forEach(function (m) {
+    if (m.id === 'M12') { opt('ndef:B+', m.rank + ' · M12 B+ · vCard completa → URL del .vcf (híbrida)'); return; }
+    m.nfc.forEach(function (n) { opt('url:' + n.path, m.rank + ' · ' + m.id + ' · ' + n.label); });
+  });
   var hyb = document.getElementById('hyb');
   hyb.value = Lab.abs(M.VCF); // .vcf directo (M01): el preferido en iPhone
   var p = Lab.qs('p'); if (p) sel.value = p;
 
   function records() {
     var v = sel.value, enc = new TextEncoder();
-    var compact = C.buildVCard(C.CONTACT, { version: '3.0', compact: true });
     var full = C.buildVCard(C.CONTACT, { version: '3.0' });
     var vc = function (t) { return { recordType: 'mime', mediaType: 'text/vcard', data: enc.encode(t) }; };
     var url = { recordType: 'url', data: hyb.value };
     if (v.indexOf('url:') === 0) return [{ recordType: 'url', data: Lab.abs(v.slice(4)) }];
-    return { 'ndef:A': [vc(compact)], 'ndef:A+': [vc(full)], 'ndef:B': [vc(compact), url], 'ndef:B+': [vc(full), url], 'ndef:C': [url, vc(compact)] }[v];
+    return [vc(full), url]; // ndef:B+
   }
   function sizeOf(recs) {
     return C.ndefMessageSize(recs.map(function (r) {
@@ -79,7 +75,7 @@
   }
   function refresh() {
     var recs = records();
-    document.getElementById('hybWrap').style.display = /^ndef:(B|B\+|C)$/.test(sel.value) ? '' : 'none';
+    document.getElementById('hybWrap').style.display = sel.value === 'ndef:B+' ? '' : 'none';
     document.getElementById('summary').textContent = 'Registros: ' + recs.map(function (r) {
       return r.recordType === 'url' ? 'URL ' + r.data : 'MIME ' + r.mediaType;
     }).join(' → ') + ' · ~' + sizeOf(recs) + ' bytes (NTAG215: 504)';

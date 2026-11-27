@@ -208,3 +208,18 @@ La decisión final se registrará aquí como **D14** con los datos de
   propio. **No bloquear tarjetas hasta tener el dominio definitivo:** una
   tarjeta bloqueada con `tomasfouyet.github.io` dependerá para siempre de esa
   cuenta personal.
+
+## D18 · El laboratorio queda en 5 opciones — Aceptada (2026-11-27)
+
+- **Pedido del equipo:** dejar en el sitio y en el grabador solo las 5
+  mejores opciones, cada una con sus condiciones, para seguir evaluando.
+- **Se mantienen:** 1 · M11 adaptativa (recomendada), 2 · M12 B+ híbrida,
+  3 · M01 `.vcf` directo, 4 · M11 + Intent, 5 · M07 Intent (banco de pruebas).
+- **Criterio:** las validadas en pruebas físicas que siguen siendo relevantes
+  (1, 2, 3) y las únicas sin probar que podrían mejorar Samsung sin perder la
+  actualización remota (4, 5).
+- **Se eliminan del sitio:** T00, M02–M06, M08, M09 (y sus variantes de
+  cabeceras), M10, M13 y M12 A/B/C. Siguen en el historial de git (commit
+  `24493eb`). El respaldo de M07 pasa a ser la descarga del `.vcf`.
+- Cada opción declara sus **condiciones** en `lab/assets/methods.js`:
+  actualización, iPhone, Samsung, requisitos y estado (validado / por evaluar).

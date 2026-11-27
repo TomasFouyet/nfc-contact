@@ -74,36 +74,20 @@ const click = (sel) => async (page) => { await page.click(sel, { timeout: 3000 }
 const text = (sel) => async (page) => (await page.locator(sel).allInnerTexts()).join(' | ');
 
 const SCENARIOS = [
-  { name: 'T00 carga', path: '/lab/t00-control/' },
-  { name: 'M01 .vcf directo', path: '/lab/vcards/contacto-v30.vcf' },
-  { name: 'M02 botón', path: '/lab/m02-boton/', act: click('#save') },
-  { name: 'M03 download', path: '/lab/m03-descarga-auto/?modo=download' },
-  { name: 'M03 enlace', path: '/lab/m03-descarga-auto/?modo=enlace' },
-  { name: 'M03 iframe', path: '/lab/m03-descarga-auto/?modo=iframe' },
-  { name: 'M04 meta refresh', path: '/lab/m04-redir-meta/' },
-  { name: 'M05 replace', path: '/lab/m05-redir-js/?modo=replace' },
-  { name: 'M05 assign', path: '/lab/m05-redir-js/?modo=assign' },
-  { name: 'M06 auto blob-download', path: '/lab/m06-blob/?auto=blob-download' },
-  { name: 'M06 auto blob-nav', path: '/lab/m06-blob/?auto=blob-nav' },
-  { name: 'M06 botón D1 data+download', path: '/lab/m06-blob/', act: async (p) => { await p.getByText('D1 ·').click(); } },
-  { name: 'M06 botón D2 navegar data:', path: '/lab/m06-blob/', act: async (p) => { await p.getByText('D2 ·').click(); } },
-  { name: 'M07 carga (n.º enlaces intent)', path: '/lab/m07-intent/', act: async (p) => 'enlaces intent: ' + await p.locator('a[href^="intent:"]').count() },
-  { name: 'M07 clic I1', path: '/lab/m07-intent/', act: async (p) => { await p.getByText('I1 ·').click(); } },
-  { name: 'M07 auto (sin gesto)', path: '/lab/m07-intent/?auto=1' },
-  { name: 'M08 carga', path: '/lab/m08-intent-vcf/', act: async (p) => 'enlaces intent: ' + await p.locator('a[href^="intent:"]').count() },
-  { name: 'M09 validez de variantes', path: '/lab/m09-mime/', act: async (p) => { await p.waitForTimeout(1500); return (await p.locator('.panel .topbar').allInnerTexts()).map((t) => t.replace(/\n/g, ' ')).join(' | '); } },
-  { name: 'M10 soporte', path: '/lab/m10-share/', act: text('#support') },
-  { name: 'M11 por defecto', path: '/lab/m11-adaptativo/' },
-  { name: 'M11 android=auto', path: '/lab/m11-adaptativo/?android=auto' },
-  { name: 'M11 android=intent (href botón)', path: '/lab/m11-adaptativo/?android=intent', act: async (p) => { const h = await p.getAttribute('#save', 'href'); return 'botón: ' + (h || '').slice(0, 40); } },
-  { name: 'M12 tamaños', path: '/lab/m12-ndef-vcard/', act: async (p) => (await p.locator('#sizes tr').allInnerTexts()).slice(1).map((t) => t.replace(/\s+/g, ' ')).join(' | ') },
-  { name: 'M13 disponibilidad', path: '/lab/m13-http-redirect/', act: async (p) => { await p.waitForTimeout(800); return text('#checks')(p); } },
-  { name: 'Grabador soporte', path: '/lab/grabador/', act: text('#support') },
+  { name: 'Índice (5 opciones)', path: '/lab/', act: async (p) => 'opciones: ' + ((await p.locator('#summary tr').count()) - 1) + ' · ' + (await p.locator('#options section').count()) + ' fichas' },
+  { name: '1 · M11 adaptativa', path: '/lab/m11-adaptativo/' },
+  { name: '1 · M11 ?ios=ficha', path: '/lab/m11-adaptativo/?ios=ficha', act: async (p) => 'botón: ' + (await p.getAttribute('#save', 'href') || '').replace(/^.*\/lab\//, '') },
+  { name: '2 · M12 B+ tamaño', path: '/lab/m12-ndef-vcard/', act: text('#size') },
+  { name: '3 · M01 .vcf directo', path: '/lab/vcards/contacto-v30.vcf' },
+  { name: '3 · M01 página', path: '/lab/m01-vcf-directo/', act: text('h1') },
+  { name: '4 · M11 + Intent (botón)', path: '/lab/m11-adaptativo/?android=intent', act: async (p) => { const h = await p.getAttribute('#save', 'href'); return 'botón: ' + (h || '').slice(0, 45) + ' · data-method=' + await p.getAttribute('body', 'data-method'); } },
+  { name: '5 · M07 carga (n.º enlaces intent)', path: '/lab/m07-intent/', act: async (p) => 'enlaces intent: ' + await p.locator('a[href^="intent:"]').count() },
+  { name: '5 · M07 clic I1', path: '/lab/m07-intent/', act: async (p) => { await p.getByText('I1 ·').click(); } },
+  { name: 'Grabador: opciones', path: '/lab/grabador/', act: async (p) => (await p.locator('#preset option').allInnerTexts()).join(' | ') },
   { name: 'Registro genera fila', path: '/lab/registro/', act: async (p) => {
     await p.fill('#modelo', 'Modelo-Prueba'); await p.fill('#inter', '2'); await p.check('#c0');
     await p.click('#save'); return (await p.textContent('#md')).slice(0, 80);
-  } },
-  { name: 'Índice', path: '/lab/', act: async (p) => 'métodos listados: ' + await p.locator('#methods li').count() }
+  } }
 ];
 
 function summarize(o) {
@@ -125,7 +109,7 @@ const main = async () => {
     for (const [hostName, port] of [['servidor local (_headers activo)', 8811], ['simulación GitHub Pages', 8812]]) {
       const base = 'http://127.0.0.1:' + port;
       const profiles = hostName.startsWith('simul') ? ['android-chrome'] : Object.keys(PROFILES);
-      const scenarios = hostName.startsWith('simul') ? SCENARIOS.filter((s) => /M09|M13|M01/.test(s.name)) : SCENARIOS;
+      const scenarios = hostName.startsWith('simul') ? SCENARIOS.filter((s) => /M01|M11 adaptativa/.test(s.name)) : SCENARIOS;
       for (const prof of profiles) {
         const context = await browser.newContext({ ...PROFILES[prof], acceptDownloads: true, locale: 'es-CL' });
         for (const s of scenarios) {
@@ -140,7 +124,7 @@ const main = async () => {
         for (const [w, h] of [[360, 780], [1024, 800]]) {
           const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
           const p = await ctx.newPage();
-          await p.goto(base + '/lab/m02-boton/');
+          await p.goto(base + '/lab/m11-adaptativo/?ios=ficha');
           await p.screenshot({ path: join(OUT, `ficha-${w}.png`), fullPage: false });
           await ctx.close();
         }

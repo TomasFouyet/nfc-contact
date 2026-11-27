@@ -15,32 +15,23 @@ en [`lab/`](lab/).
 
 ## Laboratorio (Fase 1)
 
-Compara 13 métodos para abrir y guardar un contacto desde una tarjeta NFC
-en iPhone y Samsung. Cada método tiene su página y una URL lista para grabar
-en la tarjeta.
+Quedan **5 opciones** en evaluación (D18), cada una con su página, su URL para
+la tarjeta y sus condiciones:
 
-| ID | Método |
-|---|---|
-| T00 | Control de lectura NFC y diagnóstico |
-| M01 | Acceso directo al `.vcf` |
-| M02 | Página con botón "Guardar contacto" (ficha de referencia) |
-| M03 | Descarga automática (download / enlace / iframe) |
-| M04 | Redirección con meta refresh |
-| M05 | Redirección con JavaScript |
-| M06 | vCard generada con JavaScript (Blob / data URI) |
-| M07 | Android Intent: editor nativo de contactos |
-| M08 | Android Intent VIEW sobre el `.vcf` |
-| M09 | Tipos MIME, cabeceras y versiones de vCard (2.1 / 3.0 / 4.0) |
-| M10 | Web Share API con archivo |
-| M11 | Página adaptativa por plataforma (candidato) |
-| M12 | vCard grabada en el chip (NDEF) e híbrido vCard + URL |
-| M13 | Redirección HTTP 302 (requiere un entorno alternativo) |
+| # | Opción | Actualización remota | iPhone | Samsung | Estado |
+|---|---|---|---|---|---|
+| 1 | M11 · Página adaptativa | Sí: datos y comportamiento | Directo · validado | Descarga + importar · validado | **Recomendada** |
+| 2 | M12 B+ · Híbrida vCard + URL | Parcial: en Samsung hay que regrabar | Directo · validado | Contactos directo · validado | Descartada para producción |
+| 3 | M01 · Link directo al `.vcf` | Solo datos | Directo · validado | Descarga + importar · validado | Referencia |
+| 4 | M11 + Intent en Android | Sí | Directo · validado | Editor de contactos · por evaluar | Por evaluar |
+| 5 | M07 · Intent de Android (banco de pruebas) | Sí | No aplica | Editor de contactos · por evaluar | Por evaluar |
 
 Herramientas: `lab/grabador/` (grabar y leer tarjetas con Web NFC) y
-`lab/registro/` (formulario que genera las filas de resultados).
+`lab/registro/` (formulario de resultados). Las opciones descartadas (T00,
+M02–M06, M08–M10, M13, M12 A/B/C) siguen en el historial de git (commit
+`24493eb`).
 
-**Todos los datos son ficticios.** El comportamiento esperado de cada método
-es una hipótesis hasta que se valide con pruebas físicas.
+**Todos los datos del laboratorio son ficticios.**
 
 ## Panel de tarjetas
 
@@ -79,11 +70,11 @@ panel/                   Panel de tarjetas (personas, publicación, grabación)
 c/                       Páginas y contactos publicados por el panel (<id>/, <id>.vcf, assets/)
 lab/                     Laboratorio estático (GitHub Pages compatible)
   assets/                contact.js (datos + generadores), methods.js, lab.js, lab.css
-  vcards/, http/         Archivos vCard generados
-  t00-…/ m01-…/ … m13-…/ Una página por prueba
+  vcards/                vCard de prueba generada
+  m01-…/ m07-…/ m11-…/ m12-…/  Páginas de las 5 opciones
   grabador/, registro/   Herramientas
 server/serve.mjs         Servidor experimental (cabeceras y redirecciones)
-_headers, _redirects     Configuración para el servidor local, Netlify y Cloudflare Pages
+_headers                 Cabeceras para el servidor local, Netlify y Cloudflare Pages
 tools/                   Generador de vCard y comprobador de cabeceras
 tests/                   Pruebas (node --test) y E2E (Playwright)
 docs/                    Documentación

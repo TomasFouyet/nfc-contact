@@ -21,26 +21,25 @@ General → Información** (iPhone) y **Ajustes → Acerca del teléfono →
 Información de software** (Samsung). No confiar en el diagnóstico de la
 página para el modelo ni la versión.
 
-### Tarjetas (10 × NTAG215)
+### Tarjetas (NTAG215) — 5 opciones en evaluación (D18)
 
-Etiquetar cada tarjeta con un número (cinta o marcador).
+Una tarjeta por opción, numerada como la opción. Las demás quedan de reserva.
 
-| Tarjeta | Contenido fijo | Prueba |
+| Tarjeta | Opción | Contenido (Grabador → "Contenido") |
 |---|---|---|
-| #1 | URL `t00-control/` | T00 Control |
-| #2 | URL `vcards/contacto-v30.vcf` | M01 |
-| #3 | URL `m02-boton/` | M02 |
-| #4 | URL `m11-adaptativo/` | M11 (candidato) |
-| #5 | URL `m03-descarga-auto/?modo=download` | M03 |
-| #6 | URL `m05-redir-js/?modo=replace` | M05 |
-| #7 | NDEF: solo vCard compacta | M12 A |
-| #8 | NDEF: vCard compacta → URL M11 | M12 B |
-| #9 | NDEF: URL M11 → vCard compacta | M12 C |
-| #10 | **Rotativa**: se reescribe para M04, M06, M07, M08, M09, M10 y las variantes | varias |
+| #1 | 1 · M11 Página adaptativa | URL `m11-adaptativo/` |
+| #2 | 2 · M12 B+ Híbrida | NDEF: vCard completa → URL `vcards/contacto-v30.vcf` |
+| #3 | 3 · M01 `.vcf` directo | URL `vcards/contacto-v30.vcf` |
+| #4 | 4 · M11 + Intent | URL `m11-adaptativo/?android=intent` |
+| #5 | 5 · M07 Intent (banco de pruebas) | URL `m07-intent/` |
 
-Grabar con el **Grabador** del laboratorio (`/lab/grabador/`, Chrome Android)
-o con una app NFC. **Leer y verificar** la tarjeta después de grabarla. No
-bloquear (*lock*) las tarjetas durante el piloto.
+Grabar con el **Grabador** del laboratorio (`/lab/grabador/`, Chrome Android),
+que ya ofrece solo estas 5 opciones, y **leer y verificar** cada tarjeta
+después de grabarla. **No bloquear** las tarjetas hasta tener el dominio
+definitivo (D17).
+
+> Las tarjetas grabadas antes de D18 con M02–M06 ya no funcionan: esas
+> páginas se eliminaron. Hay que regrabarlas.
 
 ## 2. Preparación de cada sesión
 
@@ -125,23 +124,20 @@ Un método es **confiable** en un teléfono si da Éxito en 3 de 3 intentos.
 
 ## 7. Orden sugerido
 
-1. T00 en todos los teléfonos.
-2. M01, M02 y M11 (línea base y candidato) en todos.
-3. M12 A, B y C (vCard en el chip): son las pruebas con mayor potencial para Samsung.
-4. M07 (intents) en Samsung con Samsung Internet y con Chrome.
-5. M03, M04, M05 y M06 (variantes de descarga y redirección).
-6. M09 (formatos y cabeceras): primero V21, V30, V30E, V40 y V30LF en
-   GitHub Pages; las H1–H5, solo en un hosting donde M09 indique "válida".
-7. M10 y M13 si el tiempo lo permite.
+1. **Opción 5 (M07)** en Samsung, con Samsung Internet y con Chrome: ¿alguna
+   variante abre el editor de contactos?
+2. **Opción 4 (M11 + Intent)**: solo si la 5 funcionó; confirmar que en Samsung
+   abre el editor y en iPhone sigue igual que la 1.
+3. **Opción 1 (M11)** en iPhone y Samsung: 3 intentos por teléfono para
+   confirmar formalmente la opción recomendada.
+4. **Opciones 2 y 3**: solo como referencia, si se quiere completar la
+   comparación.
 
 ## 8. Caché y hosting
 
 - GitHub Pages aplica su propia caché (no configurable). Si se cambia un
   archivo, esperar unos 10 minutos o agregar un parámetro `?v=2` a la URL
   grabada, y anotarlo.
-- Las pruebas de cabeceras (M09 H1–H5) y de redirección HTTP (M13) son
-  válidas solo si la página correspondiente marca la variante como
-  "válida/disponible" en ese hosting.
 - Comprobar las cabeceras reales con `tools/check-headers.sh <URL base>`
   y guardar la salida en `TEST_RESULTS.md` §3.
 

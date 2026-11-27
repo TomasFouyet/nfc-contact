@@ -4,47 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>NFC Lab — Piloto de contacto NFC</title>
+<title>NFC Lab — 5 opciones en evaluación</title>
 <link rel="stylesheet" href="assets/lab.css">
 </head>
 <body>
 <main>
   <span class="badge">Fase 1 · Piloto técnico</span>
   <h1>Laboratorio de contacto NFC</h1>
-  <p>Compara métodos para que una persona acerque su teléfono a una tarjeta NFC y guarde un contacto con el menor número de toques, sin instalar apps. Prioridad: <strong>iPhone y Samsung</strong>.</p>
-  <p class="notice warn">Todos los datos de contacto son <strong>ficticios</strong>. Los textos de "comportamiento esperado" son <strong>hipótesis</strong>: solo las pruebas físicas registradas en <code>docs/TEST_RESULTS.md</code> cuentan como resultado.</p>
-  <div id="host"></div>
+  <p>Las <strong>5 opciones</strong> que siguen en evaluación para guardar un contacto desde una tarjeta NFC en iPhone y Samsung, cada una con sus condiciones. Las demás se descartaron y quedan en el historial del repositorio.</p>
+  <p class="notice warn">Datos de contacto <strong>ficticios</strong>. "Validado" = observado en pruebas físicas del equipo; "Por evaluar" = todavía sin prueba física.</p>
 
   <section class="panel">
-    <h2>Cómo usar el laboratorio</h2>
-    <ol>
-      <li>Empezar cada teléfono con <strong>T00</strong> (control de lectura NFC).</li>
-      <li>Abrir la página del método, copiar la <em>URL para grabar en la tarjeta</em> y grabarla (con el <a href="grabador/">Grabador</a> en Chrome Android o con una app NFC).</li>
-      <li>Leer la tarjeta con el teléfono desbloqueado y contar las interacciones hasta que el contacto quede guardado.</li>
-      <li>Revisar el contacto en la app Contactos y <a href="registro/">registrar el resultado</a>. Luego borrar el contacto antes de la siguiente prueba.</li>
-    </ol>
+    <h2>Resumen</h2>
+    <div class="table-scroll"><table id="summary">
+      <tr><th>#</th><th>Opción</th><th>Actualización remota</th><th>iPhone</th><th>Samsung</th><th>Estado</th></tr>
+    </table></div>
   </section>
 
-  <section class="panel">
-    <h2>Pruebas</h2>
-    <ul class="list-methods" id="methods"></ul>
-  </section>
+  <div id="options"></div>
 
   <section class="panel">
     <h2>Herramientas</h2>
     <ul class="list-methods">
-      <li><a class="title" href="grabador/">Grabador y lector NFC (Web NFC)</a><br><span class="muted">Graba cualquier prueba en la tarjeta desde Chrome Android y verifica lo grabado.</span></li>
-      <li><a class="title" href="registro/">Registro de resultados</a><br><span class="muted">Formulario que genera filas para docs/TEST_RESULTS.md.</span></li>
-      <li><a class="title" href="m02-boton/">Ficha profesional de referencia</a><br><span class="muted">Diseño minimalista y responsive (M02).</span></li>
+      <li><a class="title" href="grabador/">Grabador y lector NFC</a><br><span class="muted">Graba cualquiera de las 5 opciones desde Chrome en Android y verifica lo grabado.</span></li>
+      <li><a class="title" href="registro/">Registro de resultados</a><br><span class="muted">Anota cada prueba y envía los resultados desde el teléfono.</span></li>
+      <li><a class="title" href="../panel/">Panel de tarjetas</a><br><span class="muted">Personas reales: publicar su página y grabar su tarjeta (usa la opción 1).</span></li>
     </ul>
-  </section>
-
-  <section class="panel">
-    <h2>Descarga manual</h2>
-    <div class="btn-grid two">
-      <a class="btn" href="vcards/contacto-v30.vcf">Abrir vCard 3.0</a>
-      <a class="btn" href="vcards/contacto-v30.vcf" download="Valentina-Rojas.vcf">Descargar vCard 3.0</a>
-    </div>
   </section>
   <div id="bottom"></div>
 </main>
@@ -52,25 +37,27 @@
 <script src="assets/methods.js"></script>
 <script src="assets/lab.js"></script>
 <script>
-  var list = document.getElementById('methods');
-  NFCMethods.METHODS.forEach(function (m) {
-    var li = Lab.el('li', null, [
-      Lab.el('div', { 'class': 'head' }, [
-        Lab.el('span', { 'class': 'badge', text: m.id }),
-        Lab.el('a', { 'class': 'title', href: m.slug + '/', text: m.title }),
-        Lab.el('span', { 'class': 'badge', text: m.group })
-      ]),
+  var list = NFCMethods.METHODS.slice().sort(function (a, b) { return a.rank - b.rank; });
+  var sum = document.getElementById('summary');
+  list.forEach(function (m) {
+    var href = m.slug + '/' + (m.id === 'M11-I' ? '?android=intent' : '');
+    sum.appendChild(Lab.el('tr', null, [
+      Lab.el('td', { text: String(m.rank) }),
+      Lab.el('td', null, [Lab.el('a', { href: href, text: m.title })]),
+      Lab.el('td', { text: m.brief.update }),
+      Lab.el('td', { text: m.brief.iphone }),
+      Lab.el('td', { text: m.brief.samsung }),
+      Lab.el('td', null, [Lab.el('span', { 'class': 'badge ' + (/^Por evaluar/.test(m.brief.estado) ? 'warn' : /Descartada/.test(m.brief.estado) ? '' : 'ok'), text: m.brief.estado })])
+    ]));
+    var box = Lab.el('section', { 'class': 'panel' }, [
+      Lab.el('div', { 'class': 'topbar' }, [Lab.el('span', { 'class': 'badge', text: 'Opción ' + m.rank }), Lab.el('span', { 'class': 'badge', text: m.id }), Lab.el('span', { 'class': 'badge', text: m.group })]),
+      Lab.el('h2', null, [Lab.el('a', { href: href, text: m.title })]),
       Lab.el('p', { 'class': 'muted', text: m.summary }),
-      Lab.el('p', { 'class': 'mono muted', text: 'NFC: ' + m.nfc.map(function (n) { return n.path; }).join('  ·  ') })
+      Lab.conditionsTable(m),
+      Lab.el('p', { 'class': 'mono muted', text: 'Tarjeta: ' + m.nfc.map(function (n) { return n.path; }).join('  ·  ') })
     ]);
-    list.appendChild(li);
+    document.getElementById('options').appendChild(box);
   });
-  var host = document.getElementById('host');
-  if (Lab.env.isGithubPages) {
-    host.appendChild(Lab.el('p', { 'class': 'notice info', text: 'Hosting: GitHub Pages. Las pruebas de cabeceras HTTP (M09 H1–H5) y de redirección 302 (M13) no son válidas aquí; ver docs/DECISIONS.md.' }));
-  } else {
-    host.appendChild(Lab.el('p', { 'class': 'notice info', text: 'Hosting: ' + location.host + '. Comprueba en M09 y M13 qué pruebas de cabeceras y redirecciones soporta.' }));
-  }
 </script>
 </body>
 </html>

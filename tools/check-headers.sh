@@ -8,16 +8,8 @@ BASE="${1:?Uso: $0 URL_BASE (sin barra final)}"
 PATHS=(
   /tomas.vcf
   /lab/vcards/contacto-v30.vcf
-  /lab/vcards/contacto-v30.vcard
-  /lab/vcards/contacto-v21.vcf
-  /lab/vcards/contacto-v40.vcf
-  /lab/http/inline-vcard.vcf
-  /lab/http/attachment-vcard.vcf
-  /lab/http/x-vcard.vcf
-  /lab/http/directory.vcf
-  /lab/http/octet-stream.vcf
-  /lab/r/vcf
-  /lab/r/intent
+  /lab/m11-adaptativo/
+  /c/assets/card.js
 )
 for p in "${PATHS[@]}"; do
   echo "== $BASE$p"

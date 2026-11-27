@@ -1,7 +1,5 @@
 # Cabeceras HTTP para hostings que las soportan (Netlify, Cloudflare Pages)
 # y para el servidor local (server/serve.mjs). GitHub Pages IGNORA este archivo.
-# Las variantes de M09 (H1–H5) dependen de estas reglas. La página M09
-# comprueba en vivo si el hosting las aplicó.
 
 /lab/*
   Cache-Control: no-cache
@@ -10,26 +8,5 @@
 /lab/vcards/*
   Cache-Control: no-store
 
-/lab/http/inline-vcard.vcf
-  Content-Type: text/vcard; charset=utf-8
-  Content-Disposition: inline; filename="Valentina-Rojas.vcf"
-  Cache-Control: no-store
-
-/lab/http/attachment-vcard.vcf
-  Content-Type: text/vcard; charset=utf-8
-  Content-Disposition: attachment; filename="Valentina-Rojas.vcf"
-  Cache-Control: no-store
-
-/lab/http/x-vcard.vcf
-  Content-Type: text/x-vcard; charset=utf-8
-  Content-Disposition: inline; filename="Valentina-Rojas.vcf"
-  Cache-Control: no-store
-
-/lab/http/directory.vcf
-  Content-Type: text/directory; profile=vCard; charset=utf-8
-  Cache-Control: no-store
-
-/lab/http/octet-stream.vcf
-  Content-Type: application/octet-stream
-  Content-Disposition: attachment; filename="Valentina-Rojas.vcf"
-  Cache-Control: no-store
+/c/*
+  Cache-Control: no-cache

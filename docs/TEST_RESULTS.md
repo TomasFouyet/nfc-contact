@@ -113,6 +113,10 @@ interacciones, campos importados y número de intentos. No sirven aún para la d
 
 ---
 
+> **Nota (D18, 2026-11-27):** el laboratorio quedó reducido a 5 opciones. Las
+> páginas de las demás se eliminaron (siguen en git, commit `24493eb`); sus
+> resultados se conservan en este documento como referencia.
+
 ## 5. Matriz resumen (completar al terminar las pruebas)
 
 Mediana de interacciones · intentos con Éxito/total. Celda vacía = no probado.

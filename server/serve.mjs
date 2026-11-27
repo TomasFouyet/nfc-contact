@@ -4,8 +4,7 @@
  *
  * Sirve el repositorio como GitHub Pages, pero además:
  *   - aplica las cabeceras de /_headers (formato Netlify/Cloudflare Pages),
- *   - aplica las redirecciones de /_redirects,
- *   - implementa /lab/r/intent (302 → intent: de Android).
+ *   - aplica las redirecciones de /_redirects (si existe).
  *
  * Uso:
  *   node server/serve.mjs                 # http://0.0.0.0:8080
@@ -20,12 +19,9 @@ import https from 'node:https';
 import { readFileSync, statSync, existsSync } from 'node:fs';
 import { join, normalize, extname, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const require = createRequire(import.meta.url);
-const C = require(join(ROOT, 'lab/assets/contact.js'));
 
 // Tipos por extensión, imitando a GitHub Pages (mime-db).
 const MIME = {
@@ -70,7 +66,7 @@ function load(name, parser) {
 
 export function createHandler() {
   return (req, res) => {
-    // SIMULAR_GHPAGES=1 ignora _headers/_redirects/r/intent para imitar GitHub Pages.
+    // SIMULAR_GHPAGES=1 ignora _headers/_redirects para imitar GitHub Pages.
     const ghp = process.env.SIMULAR_GHPAGES === '1';
     const headerRules = ghp ? [] : load('_headers', parseHeaders);
     const redirects = ghp ? [] : load('_redirects', parseRedirects);
@@ -80,12 +76,6 @@ export function createHandler() {
     const origin = proto + '://' + (req.headers.host || 'localhost');
     const log = (status, extra = '') => console.log(`${new Date().toISOString()} ${status} ${req.method} ${req.url} ${extra} · ${req.headers['user-agent'] || ''}`);
 
-    // Redirección dinámica a intent: (no expresable en _redirects).
-    if (!ghp && path === '/lab/r/intent') {
-      const loc = C.buildInsertIntent(C.CONTACT, { fallback: origin + '/lab/vcards/contacto-v30.vcf' });
-      res.writeHead(302, { Location: loc, 'Cache-Control': 'no-store' });
-      log(302, '→ intent:'); return res.end();
-    }
     for (const r of redirects) {
       if (r.from === path) {
         res.writeHead(r.status, { Location: r.to, 'Cache-Control': 'no-store' });

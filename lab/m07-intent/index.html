@@ -13,7 +13,7 @@
 <section class="panel">
   <h2>Variantes de Intent</h2>
   <p class="notice warn" id="ios" hidden>Estás en iOS: los URIs <code>intent:</code> no funcionan aquí. Esta prueba es solo para Android.</p>
-  <p class="muted">Cada botón es un enlace real (<code>&lt;a href="intent:…"&gt;</code>), así que Chrome recibe un gesto de la persona. Si la app no se abre, el navegador debería ir a la URL de respaldo: la ficha M02 con <code>?desde=intent</code>.</p>
+  <p class="muted">Cada botón es un enlace real (<code>&lt;a href="intent:…"&gt;</code>), así que Chrome recibe un gesto de la persona. Si el editor no se abre, el navegador debería ir a la URL de respaldo: la descarga del <code>.vcf</code>.</p>
   <div class="btn-grid" id="btns"></div>
   <p class="notice info" id="status" hidden></p>
 </section>
@@ -24,7 +24,7 @@
 <script src="../assets/lab.js"></script>
 <script>
   var C = NFCContact;
-  var fb = Lab.abs('m02-boton/?desde=intent');
+  var fb = Lab.vcfUrl(); // respaldo: descarga del .vcf (flujo validado en Samsung)
   var VARIANTS = [
     { id: 'I1', label: 'I1 · INSERT raw_contact (intent:)', opts: { fallback: fb } },
     { id: 'I2', label: 'I2 · INSERT raw_contact (intent://)', opts: { fallback: fb, prefix: 'intent://' } },

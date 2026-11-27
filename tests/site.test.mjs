@@ -20,19 +20,18 @@ const fileFor = (labPath) => {
 };
 
 test('cada método tiene su página y su data-method correcto', () => {
+  assert.equal(M.METHODS.length, 5, 'solo 5 opciones en evaluación (D18)');
+  assert.deepEqual(M.METHODS.map((m) => m.rank).sort(), [1, 2, 3, 4, 5]);
   for (const m of M.METHODS) {
     const f = join(ROOT, 'lab', m.slug, 'index.html');
     assert.ok(existsSync(f), 'falta ' + f);
-    assert.match(readFileSync(f, 'utf8'), new RegExp(`data-method="${m.id}"`));
+    assert.match(readFileSync(f, 'utf8'), new RegExp(`data-method="${m.sharedPage ? '[^"]+' : m.id}"`));
+    for (const k of ['update', 'iphone', 'samsung', 'requisito', 'estado']) assert.ok(m.conditions[k], `${m.id} sin condición ${k}`);
   }
 });
 
-test('todas las URLs NFC y variantes apuntan a archivos existentes', () => {
-  for (const m of M.METHODS) for (const n of m.nfc) {
-    if (n.path.startsWith('r/')) continue; // redirecciones de servidor
-    assert.ok(existsSync(fileFor(n.path)), `${m.id}: ${n.path}`);
-  }
-  for (const v of M.VARIANTS) assert.ok(existsSync(fileFor(v.path)), v.path);
+test('todas las URLs NFC apuntan a archivos existentes', () => {
+  for (const m of M.METHODS) for (const n of m.nfc) assert.ok(existsSync(fileFor(n.path)), `${m.id}: ${n.path}`);
 });
 
 test('los enlaces y recursos relativos del HTML existen', () => {
@@ -79,7 +78,7 @@ function request(port, path, method = 'GET') {
   });
 }
 
-test('servidor local: cabeceras, redirecciones y seguridad', async () => {
+test('servidor local: tipos, cabeceras y seguridad', async () => {
   const server = http.createServer(createHandler());
   const log = console.log; console.log = () => {};
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -88,20 +87,10 @@ test('servidor local: cabeceras, redirecciones y seguridad', async () => {
     let r = await request(port, '/lab/vcards/contacto-v30.vcf', 'HEAD');
     assert.equal(r.statusCode, 200);
     assert.match(r.headers['content-type'], /^text\/x-vcard/);
-    r = await request(port, '/lab/vcards/contacto-v30.vcard', 'HEAD');
-    assert.match(r.headers['content-type'], /^text\/vcard/);
-    r = await request(port, '/lab/http/attachment-vcard.vcf', 'HEAD');
-    assert.match(r.headers['content-type'], /^text\/vcard/);
-    assert.match(r.headers['content-disposition'], /^attachment/);
-    r = await request(port, '/lab/http/octet-stream.vcf', 'HEAD');
-    assert.equal(r.headers['content-type'], 'application/octet-stream');
-    r = await request(port, '/lab/r/vcf');
-    assert.equal(r.statusCode, 302);
-    assert.equal(r.headers.location, '/lab/vcards/contacto-v30.vcf');
-    r = await request(port, '/lab/r/intent');
-    assert.equal(r.statusCode, 302);
-    assert.match(r.headers.location, /^intent:#Intent;action=android\.intent\.action\.INSERT;/);
-    r = await request(port, '/lab/m02-boton');
+    assert.equal(r.headers['cache-control'], 'no-store', '_headers aplicado');
+    r = await request(port, '/c/assets/card.js', 'HEAD');
+    assert.equal(r.statusCode, 200);
+    r = await request(port, '/lab/m11-adaptativo');
     assert.equal(r.statusCode, 301);
     r = await request(port, '/../../etc/passwd');
     assert.ok([403, 404].includes(r.statusCode));

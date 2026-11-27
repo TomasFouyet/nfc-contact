@@ -79,7 +79,7 @@
   var KEY = 'nfclab.results.v1';
   var FIELDS = ['Nombre', 'Apellidos (á, ñ)', 'Empresa (í)', 'Cargo', 'Móvil', 'Tel. trabajo', 'Correo', 'Sitio web', 'Dirección', 'Nota'];
   var $ = function (id) { return document.getElementById(id); };
-  NFCMethods.METHODS.forEach(function (m) { $('prueba').appendChild(Lab.el('option', { value: m.id, text: m.id + ' · ' + m.title })); });
+  NFCMethods.METHODS.slice().sort(function (a, b) { return a.rank - b.rank; }).forEach(function (m) { $('prueba').appendChild(Lab.el('option', { value: m.id, text: 'Opción ' + m.rank + ' · ' + m.id + ' · ' + m.title })); });
   if (Lab.qs('m')) $('prueba').value = Lab.qs('m');
   FIELDS.forEach(function (f, i) {
     $('campos').appendChild(Lab.el('label', null, [Lab.el('input', { type: 'checkbox', value: f, id: 'c' + i }), f]));

@@ -97,7 +97,7 @@ function parseIntent(uri) {
 }
 
 test('intent INSERT: estructura y extras decodificables', () => {
-  const uri = C.buildInsertIntent(C.CONTACT, { fallback: 'https://example.com/lab/m02-boton/?desde=intent' });
+  const uri = C.buildInsertIntent(C.CONTACT, { fallback: 'https://example.com/lab/vcards/contacto-v30.vcf' });
   assert.ok(!/\s/.test(uri), 'sin espacios crudos');
   const p = parseIntent(uri);
   assert.equal(p.data, 'intent:');
@@ -107,7 +107,7 @@ test('intent INSERT: estructura y extras decodificables', () => {
   assert.equal(p.extras.phone, '+56900000101');
   assert.equal(p.extras.email, 'valentina.rojas@example.com');
   assert.equal(p.extras.company, 'Ejemplo Ingeniería SpA');
-  assert.equal(p.extras.browser_fallback_url, 'https://example.com/lab/m02-boton/?desde=intent');
+  assert.equal(p.extras.browser_fallback_url, 'https://example.com/lab/vcards/contacto-v30.vcf');
 });
 
 test('intent VIEW sobre .vcf conserva host, ruta y esquema', () => {
